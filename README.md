@@ -8,8 +8,8 @@
 🖼️ Modern UI – Built with KivyMD using Material Design components
 
 ## 🧱 Tech Stack
-Python 3.10+
-Kivy 2.3.1
+Python 3.10+\
+Kivy 2.3.1\
 KivyMD 1.2.0
 
 ## 📦 Installation
