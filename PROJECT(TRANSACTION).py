@@ -1,6 +1,7 @@
 from kivy.metrics import dp
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.uix.widget import Widget
+from kivy.lang import Builder 
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDRaisedButton, MDFillRoundFlatButton
@@ -9,16 +10,190 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.scrollview import MDScrollView
 
 
+kv = '''
+<ClickableCard@MDCard>:
+    size_hint: None, None
+    size: dp(250), dp(120)
+    elevation: 2
+    md_bg_color: 1, 1, 1, 1
+    orientation: "vertical"
+    padding: dp(10)
+
+    MDBoxLayout:
+        orientation: "vertical"
+        MDLabel:
+            id: title_label
+            halign: "center"
+            theme_text_color: "Custom"
+            text_color: 0, 0, 0, 1
+            font_style: "H5"
+            bold: True
+            size_hint_y: None
+            height: dp(40)
+        MDLabel:
+            id: amount_label
+            halign: "center"
+            theme_text_color: "Custom"
+            font_style: "H6"
+            text_color: 1, 0, 0, 1
+
+BoxLayout:
+    orientation: "horizontal"
+
+    MDBoxLayout:
+        id: nav_box
+        orientation: "vertical"
+        size_hint_x: 0.25
+        padding: dp(10)
+        spacing: dp(10)
+        md_bg_color: 0.1, 0.1, 0.1, 1
+
+        MDLabel:
+            text: "TRANSACTIONS"
+            font_style: "H5"
+            halign: "left"
+            valign: "top"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            size_hint_y: None
+            height: dp(40)
+
+        MDRaisedButton:
+            text: "Dashboard"
+            on_release: app.screen_manager.current = "main"
+
+        MDRaisedButton:
+            text: "Income"
+            on_release: app.show_income()
+
+        MDRaisedButton:
+            text: "Expenses"
+            on_release: app.show_expenses()
+
+        MDRaisedButton:
+            text: "Transaction"
+
+        MDRaisedButton:
+            text: "Settings"
+
+    ScreenManager:
+        id: screen_manager
+
+        Screen:
+            name: "main"
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: dp(10)
+                padding: dp(10)
+
+                MDLabel:
+                    text: "Dashboard"
+                    halign: "center"
+                    font_style: "H4"
+                    size_hint_y: None
+                    height: dp(50)
+
+                MDBoxLayout:
+                    spacing: dp(10)
+                    padding: dp(10)
+                    adaptive_height: True
+
+                    ClickableCard:
+                        title_label:
+                            text: "Balance"
+                        amount_label:
+                            text: "$5,000"
+
+                    ClickableCard:
+                        title_label:
+                            text: "Expenses"
+                        amount_label:
+                            text: "$1,500"
+
+        Screen:
+            name: "income"
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(10)
+                spacing: dp(10)
+
+                MDLabel:
+                    text: "Income"
+                    font_style: "H4"
+                    halign: "center"
+                    size_hint_y: None
+                    height: dp(50)
+
+                ScrollView:
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(10)
+                        size_hint_y: None
+                        height: self.minimum_height
+
+                        MDCard:
+                            size_hint: None, None
+                            size: dp(300), dp(100)
+                            padding: dp(10)
+                            MDLabel:
+                                text: "Salary - $2,000"
+                                halign: "center"
+
+                        MDCard:
+                            size_hint: None, None
+                            size: dp(300), dp(100)
+                            padding: dp(10)
+                            MDLabel:
+                                text: "Freelance - $500"
+                                halign: "center"
+
+        Screen:
+            name: "expenses"
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(10)
+                spacing: dp(10)
+
+                MDLabel:
+                    text: "Expenses"
+                    font_style: "H4"
+                    halign: "center"
+                    size_hint_y: None
+                    height: dp(50)
+
+                ScrollView:
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: dp(10)
+                        size_hint_y: None
+                        height: self.minimum_height
+
+                        MDCard:
+                            size_hint: None, None
+                            size: dp(300), dp(100)
+                            padding: dp(10)
+                            MDLabel:
+                                text: "Groceries - $300"
+                                halign: "center"
+
+                        MDCard:
+                            size_hint: None, None
+                            size: dp(300), dp(100)
+                            padding: dp(10)
+                            MDLabel:
+                                text: "Rent - $1,000"
+                                halign: "center"
+
+'''
+
+
+
 income = 1000.00
 
 transactions = [
     {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
     {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
     {"category": "Transport", "date": "2025-05-10", "account": "Card", "note": "Bus fare", "amount": 3.00},
-    {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
-    {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
-    {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
-    {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
     {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
     {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
     {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
@@ -59,7 +234,7 @@ class MyApp(MDApp):
     def build(self):
         root_layout = MDBoxLayout(orientation="horizontal")
 
-        # Left Navigation
+        # Navigation
         nav_box = MDBoxLayout(orientation="vertical", size_hint_x=0.25, padding=dp(10), spacing=dp(10), md_bg_color=(0.1, 0.1, 0.1, 1),)
 
         nav_top = MDBoxLayout(orientation="vertical", spacing=dp(10), size_hint_y=None)
@@ -90,11 +265,11 @@ class MyApp(MDApp):
 
 #main screen
         main_screen = Screen(name="main")
-        content_box = MDBoxLayout(orientation="vertical", padding=dp(50), spacing=dp(8)) # spacing = 10
+        content_box = MDBoxLayout(orientation="vertical", padding=dp(50), spacing=dp(8))
 
         top_info_column = MDBoxLayout(orientation="vertical", size_hint_y=None, height=dp(600), padding=(dp(10), 0), spacing=dp(10))
 
-        transactions_label = MDLabel(text="TRANSACTIONS", halign="left", valign="top", size_hint_y = None, height=dp(80), theme_text_color="Custom", text_color=(0, 0, 0, 1), font_style="H4", bold=True,)
+        transactions_label = MDLabel(text="TRANSACTIONS", halign="left", valign="top", size_hint_y = None, height=dp(100), theme_text_color="Custom", text_color=(0, 0, 0, 1), font_style="H4", bold=True,)
 
         top_info_column.add_widget(transactions_label)
 
@@ -189,7 +364,7 @@ class MyApp(MDApp):
         history_row.add_widget(date_button)
         top_info_column.add_widget(history_row)
 
-        # Income Transactions Only
+        # Income Transactions
         header = MDBoxLayout(orientation="horizontal", spacing=dp(20), padding=(dp(20), 0), size_hint_y=None, height=dp(50))
         for title in ["Category", "Date", "Account", "Note", "Amount"]:
             header.add_widget(
@@ -218,7 +393,7 @@ class MyApp(MDApp):
         income_layout.add_widget(top_info_column)
         income_screen.add_widget(income_layout)
 
-        # --- Expenses Screen ---
+        # expenses screen
         expenses_screen = Screen(name="expenses")
         expenses_layout = MDBoxLayout(orientation="vertical", padding=dp(10), spacing=dp(10))
 
@@ -280,7 +455,6 @@ class MyApp(MDApp):
         expenses_layout.add_widget(top_info_column)
         expenses_screen.add_widget(expenses_layout)
 
-        # Add screens to manager
         self.screen_manager.add_widget(main_screen)
         self.screen_manager.add_widget(income_screen)
         self.screen_manager.add_widget(expenses_screen)
