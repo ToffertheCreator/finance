@@ -2,7 +2,7 @@ from kivy.utils import get_color_from_hex
 from kivymd.app import MDApp
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.label import MDLabel
-from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDFloatingActionButton
+from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDFloatingActionButton, MDIconButton
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
@@ -20,35 +20,43 @@ transactions_data = [
     {"category": "Allowance", "date": "05/09/2025", "account": "Cash", "note": "Galing kay papa", "amount": 1000.00, "type": "income"},
     {"category": "Food", "date": "05/12/2025", "account": "Cash", "note": "Chowking", "amount": 100.00, "type": "expense"}
 ]
+
 kv_string = """
 <DialogContent>:
     orientation: "vertical"
-    spacing: dp(10)
-    padding: dp(20)
+    padding: 0
     size_hint_y: None
-    width: dp(400)
-    adaptive_height: True
+    width: dp(320) 
+    adaptive_height: True 
 
-    MDBoxLayout:
+    MDBoxLayout: 
         orientation: "horizontal"
-        size_hint: (1, None)
-        height: dp(30)
+        size_hint: (1, None) 
+        height: dp(40) 
         md_bg_color: get_color_from_hex("#000000")
-        padding: dp(15), 0, dp(15), 0
+        padding: dp(20), 0, dp(10), 0
+        
         MDLabel:
             text: root.dialog_title
             font_style: "H6"
             theme_text_color: "Custom"
             text_color: 1, 1, 1, 1
             halign: "left"
-            size_hint: None, 1
-            width: dp(200)
-        MDBoxLayout: 
+            valign: "center" 
+            size_hint_x: 1 
 
-    MDBoxLayout:
+        MDIconButton: 
+            icon: "close"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            pos_hint: {'center_y': .5} 
+            on_release: app.root.dismiss_current_dialog() 
+
+    MDBoxLayout: 
         orientation: "vertical"
+        md_bg_color: get_color_from_hex ("#FFFFFF")
         spacing: dp(15)
-        padding: dp(10), dp(10), dp(10), dp(10)
+        padding: dp(24) 
         adaptive_height: True
         MDTextField:
             id: category_field
@@ -76,6 +84,22 @@ kv_string = """
             mode: "rectangle"
             input_filter: "float"
             padding: dp(20), dp(15)
+        
+        MDBoxLayout: 
+            orientation: "horizontal"
+            size_hint_y: None
+            height: dp(48) 
+            padding: 0, dp(10), 0, 0 
+            Widget: 
+                size_hint_x: 1
+            
+            MDRaisedButton: 
+                text: "Save"
+                md_bg_color: get_color_from_hex("#F89411")
+                on_release: app.root.save_transaction_action(root.dialog_type, app.root.dialog)
+                size_hint_x: 100
+                size_hint_y: 0
+                height: dp(48) 
 
 <DashboardScreen>:
     name: 'dashboard'
@@ -89,7 +113,7 @@ kv_string = """
             spacing: dp(15)
             size_hint_x: None
             width: dp(230)
-            md_bg_color: get_color_from_hex("#303030")
+            md_bg_color: get_color_from_hex("#000000")
             MDLabel:
                 text: "FINANCE TRACKER"
                 font_style: "H6"
@@ -266,15 +290,15 @@ kv_string = """
             MDFloatingActionButton:
                 id: add_fab
                 icon: "plus"
-                md_bg_color: get_color_from_hex("#FFC107")
+                md_bg_color: get_color_from_hex("#F89411")
                 pos_hint: {'right': 0.95, 'y': 0.05}
                 on_release: root.show_add_options()
-                elevation: 8
+                elevation: 0
 
             MDRaisedButton:
                 id: add_income_btn
                 text: "Add Income"
-                md_bg_color: get_color_from_hex("#FFC107")
+                md_bg_color: get_color_from_hex("#F89411")
                 pos_hint: {'right': 0.95, 'y': 0.15}
                 opacity: 0
                 disabled: True
@@ -285,7 +309,7 @@ kv_string = """
             MDRaisedButton:
                 id: add_expense_btn
                 text: "Add Expense"
-                md_bg_color: get_color_from_hex("#FFC107")
+                md_bg_color: get_color_from_hex("#F89411")
                 pos_hint: {'right': 0.95, 'y': 0.23}
                 opacity: 0
                 disabled: True
@@ -296,9 +320,12 @@ kv_string = """
 
 class DialogContent(MDBoxLayout):
     dialog_title = StringProperty()
-    def __init__(self, dialog_title, **kwargs):
+    dialog_type = StringProperty() 
+
+    def __init__(self, dialog_title, dialog_type, **kwargs): 
         super().__init__(**kwargs)
         self.dialog_title = dialog_title 
+        self.dialog_type = dialog_type 
 
     def get_data(self):
         return {
@@ -326,9 +353,9 @@ class DashboardScreen(MDScreen):
 
         self.bind(on_kv_post_build=self.update_dashboard)
 
-
     def create_summary_card(self, title_text, amount, amount_color):
         pass
+
     def update_dashboard(self, *args):
         total_income = sum(t['amount'] for t in transactions_data if t['type'] == 'income')
         total_expense = sum(t['amount'] for t in transactions_data if t['type'] == 'expense')
@@ -386,19 +413,23 @@ class DashboardScreen(MDScreen):
         is_income = dialog_type == "income"
         title = "Add Income" if is_income else "Add Expense"
 
-        dialog_content_instance = DialogContent(dialog_title=title)
+        dialog_content_instance = DialogContent(dialog_title=title, dialog_type=dialog_type)
 
         self.dialog = MDDialog(
             type="custom",
             content_cls=dialog_content_instance,
-            buttons=[
-                MDFlatButton(text="CANCEL", on_release=lambda x: self.dialog.dismiss()),
-                MDRaisedButton(text="SAVE", on_release=lambda x: self.save_transaction_action(dialog_type, self.dialog)),
-            ],
+            padding=0, 
+            radius=[0, 0, 0, 0], 
+            md_bg_color = (0, 0, 0, 0),
+            elevation = 0
         )
 
         dialog_content_instance.clear_fields()
         self.dialog.open()
+
+    def dismiss_current_dialog(self):
+        if self.dialog:
+            self.dialog.dismiss()
 
     def open_add_income_dialog(self):
         self._open_transaction_dialog("income")
@@ -434,8 +465,8 @@ class DashboardScreen(MDScreen):
 class FinanceApp(MDApp):
     def build(self):
         Window.size = (1000, 600)
-        self.theme_cls.primary_palette = "Amber"
-        self.theme_cls.accent_palette = "Amber"
+        self.theme_cls.primary_palette = "Orange"
+        self.theme_cls.accent_palette = "Orange"
         self.theme_cls.theme_style = "Light"
         Builder.load_string(kv_string) 
         return DashboardScreen()
