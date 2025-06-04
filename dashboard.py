@@ -186,103 +186,153 @@ kv_string = """
                     height: dp(60)
                     padding: dp(20), dp(10)
 
-                ScrollView:
-                    do_scroll_y: False
+
+                MDBoxLayout:
+                    id: dashboard_inner_scroll_content
+                    orientation: 'vertical'
+                    padding: dp(20)
+                    spacing: dp(20)
+                    #adaptive_height: True
+                    size_hint_y: 1
+
                     MDBoxLayout:
-                        id: dashboard_inner_scroll_content
-                        orientation: 'vertical'
-                        padding: dp(20)
-                        spacing: dp(20)
-                        adaptive_height: True
+                        orientation: 'horizontal'
+                        spacing: dp(15)
                         size_hint_y: None
-
-                        MDBoxLayout:
-                            orientation: 'horizontal'
-                            spacing: dp(15)
-                            adaptive_height: True
-                            MDCard:
-                                id: income_card
-                                orientation: "vertical"
-                                padding: dp(15)
-                                spacing: dp(5)
-                                size_hint: (1, None)
-                                height: dp(100)
-                                elevation: 1
-                                radius: [15, 15, 15, 15]
-                                MDLabel:
-                                    text: "Total Income"
-                                    halign: "center"
-                                    theme_text_color: "Secondary"
-                                MDLabel:
-                                    id: income_amount_label
-                                    text: "0.00"
-                                    font_style: "H5"
-                                    bold: True
-                                    halign: "center"
-                                    theme_text_color: "Custom"
-                                    text_color: get_color_from_hex("#4CAF50")
-                            MDCard:
-                                id: expense_card
-                                orientation: "vertical"
-                                padding: dp(15)
-                                spacing: dp(5)
-                                size_hint: (1, None)
-                                height: dp(100)
-                                elevation: 1
-                                radius: [15, 15, 15, 15]
-                                MDLabel:
-                                    text: "Total Expense"
-                                    halign: "center"
-                                    theme_text_color: "Secondary"
-                                MDLabel:
-                                    id: expense_amount_label
-                                    text: "0.00"
-                                    font_style: "H5"
-                                    bold: True
-                                    halign: "center"
-                                    theme_text_color: "Custom"
-                                    text_color: get_color_from_hex("#F44336")
-                            MDCard:
-                                id: remaining_card
-                                orientation: "vertical"
-                                padding: dp(15)
-                                spacing: dp(5)
-                                size_hint: (1, None)
-                                height: dp(100)
-                                elevation: 1
-                                radius: [15, 15, 15, 15]
-                                MDLabel:
-                                    text: "Remaining"
-                                    halign: "center"
-                                    theme_text_color: "Secondary"
-                                MDLabel:
-                                    id: remaining_amount_label
-                                    text: "0.00"
-                                    font_style: "H5"
-                                    bold: True
-                                    halign: "center"
-                                    theme_text_color: "Custom"
-                                    text_color: get_color_from_hex("#000000")
-
+                        height: dp(120)
                         MDCard:
-                            orientation: 'vertical'
+                            id: income_card
+                            orientation: "vertical"
                             padding: dp(15)
-                            spacing: dp(10)
-                            size_hint_y: None
-                            adaptive_height: True
+                            spacing: dp(5)
+                            size_hint: (1, None)
+                            height: dp(100)
                             elevation: 1
                             radius: [15, 15, 15, 15]
                             MDLabel:
-                                text: "Recent Transactions"
-                                font_style: "H6"
-                                adaptive_height: True
+                                text: "Total Income"
+                                halign: "center"
+                                theme_text_color: "Secondary"
                             MDLabel:
-                                text: "All your transactions are recorded"
-                                theme_text_color: "Hint"
-                                adaptive_height: True
-                            ScrollView:
+                                id: income_amount_label
+                                text: "0.00"
+                                font_style: "H5"
+                                bold: True
+                                halign: "center"
+                                theme_text_color: "Custom"
+                                text_color: get_color_from_hex("#4CAF50")
+                        MDCard:
+                            id: expense_card
+                            orientation: "vertical"
+                            padding: dp(15)
+                            spacing: dp(5)
+                            size_hint: (1, None)
+                            height: dp(100)
+                            elevation: 1
+                            radius: [15, 15, 15, 15]
+                            MDLabel:
+                                text: "Total Expense"
+                                halign: "center"
+                                theme_text_color: "Secondary"
+                            MDLabel:
+                                id: expense_amount_label
+                                text: "0.00"
+                                font_style: "H5"
+                                bold: True
+                                halign: "center"
+                                theme_text_color: "Custom"
+                                text_color: get_color_from_hex("#F44336")
+                        MDCard:
+                            id: remaining_card
+                            orientation: "vertical"
+                            padding: dp(15)
+                            spacing: dp(5)
+                            size_hint: (1, None)
+                            height: dp(100)
+                            elevation: 1
+                            radius: [15, 15, 15, 15]
+                            MDLabel:
+                                text: "Remaining"
+                                halign: "center"
+                                theme_text_color: "Secondary"
+                            MDLabel:
+                                id: remaining_amount_label
+                                text: "0.00"
+                                font_style: "H5"
+                                bold: True
+                                halign: "center"
+                                theme_text_color: "Custom"
+                                text_color: get_color_from_hex("#000000")
+
+                    MDCard:
+                        orientation: 'vertical'
+                        padding: dp(15)
+                        spacing: dp(10)
+                        size_hint_y: 1   
+                        #adaptive_height: True
+                        elevation: 1
+                        radius: [15, 15, 15, 15]
+                        MDLabel:
+                            text: "Recent Transactions"
+                            font_style: "H6"
+                            adaptive_height: True
+                        MDLabel:
+                            text: "All your transactions are recorded"
+                            theme_text_color: "Hint"
+                            adaptive_height: True
+                        
+                        MDBoxLayout:
+                            orientation: "vertical"
+                            size_hint_y: 1
+                            MDBoxLayout:  # Header
+                                orientation: "horizontal"
                                 size_hint_y: None
-                                height: dp(250)  # or any height you want
+                                height: dp(40)
+                                padding: (dp(10), 0)
+
+                                MDLabel:
+                                    text: "Category"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.2
+
+                                MDLabel:
+                                    text: "Date"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Account"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Note"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.5
+
+                                MDLabel:
+                                    text: "Amount"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 0.8
+
+                            ScrollView:
+                                size_hint_y: 1
+                                #height: dp(230)
                                 MDBoxLayout:
                                     id: transactions_table_container
                                     orientation: "vertical"
@@ -347,6 +397,44 @@ class DialogContent(MDBoxLayout):
         self.ids.amount_field.error = False
         self.ids.amount_field.helper_text = ""
 
+class TransactionRow(MDBoxLayout):
+    def __init__(self, transaction, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = "horizontal"
+        self.size_hint_y = None
+        self.height = dp(40)
+        self.padding = [dp(10), 0, dp(10), 0]
+
+        def create_label(text, color=(0, 0, 0, 1), size_hint_x=1):
+            from kivymd.uix.label import MDLabel
+            lbl = MDLabel(
+                text=text,
+                halign="left",
+                theme_text_color="Custom",
+                text_color=color,
+                size_hint_x=size_hint_x,
+                valign="middle",
+                shorten=True,
+                shorten_from="right",
+            )
+            lbl.bind(texture_size=lbl.setter('size'))
+            return lbl
+
+
+        category_label = create_label(transaction['category'], size_hint_x=1.2)
+        date_label = create_label(transaction['date'], size_hint_x=1)
+        account_label = create_label(transaction['account'], size_hint_x=1)
+        note_label = create_label(transaction['note'], size_hint_x=1.5)
+
+        amount_color = (0, 0.5, 0, 1) if transaction['amount'] > 0 else (1, 0, 0, 1)
+        amount_label = create_label(f"${abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
+
+        self.add_widget(category_label)
+        self.add_widget(date_label)
+        self.add_widget(account_label)
+        self.add_widget(note_label)
+        self.add_widget(amount_label)
+
 class DashboardScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -368,36 +456,13 @@ class DashboardScreen(MDScreen):
         self.ids.remaining_amount_label.text = f"{remaining:,.2f}"
         self.ids.remaining_amount_label.text_color = get_color_from_hex("#4CAF50") if remaining >= 0 else get_color_from_hex("#F44336")
 
-        self.populate_transactions_table()
+        self.populate_transactions()
 
-    def populate_transactions_table(self):
+    def populate_transactions(self):
         self.ids.transactions_table_container.clear_widgets()
-        column_data = [
-            ("Category", dp(30)),
-            ("Date", dp(25)),
-            ("Account", dp(20)),
-            ("Note", dp(40)), 
-            ("Amount", dp(20), None, "right")
-        ]
-        
-        row_data = [(t['category'], t['date'], t['account'], t['note'], f"{t['amount']:,.2f}") for t in reversed(transactions_data)]
-
-        if row_data:
-            num_rows = len(row_data)
-            table_height = dp(num_rows * 48 + 56)
-            data_table = MDDataTable(
-                size_hint=(1, None), 
-                height=table_height,
-                use_pagination=False,
-                column_data=column_data, 
-                row_data=row_data, 
-                elevation=0
-            )
-            self.ids.transactions_table_container.add_widget(data_table)
-        else:
-            self.ids.transactions_table_container.add_widget(
-                MDLabel(text="No transactions yet.", halign="center", theme_text_color="Hint", padding=(0, dp(20)))
-            )
+        for transaction in reversed(transactions_data):
+            row = TransactionRow(transaction)
+            self.ids.transactions_table_container.add_widget(row)
 
     def show_add_options(self):
         target_opacity = 1 if self.ids.add_income_btn.opacity == 0 else 0
@@ -427,7 +492,7 @@ class DashboardScreen(MDScreen):
             type="custom",
             content_cls=dialog_content_instance,
             padding=0, 
-            radius=[0, 0, 0, 0], 
+            radius=[15, 15, 15, 15], 
             md_bg_color = (0, 0, 0, 0),
             elevation = 0
         )
