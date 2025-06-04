@@ -1,20 +1,16 @@
 from kivy.metrics import dp
-from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.uix.widget import Widget
-from kivy.lang import Builder 
+from kivy.properties import StringProperty, ListProperty
+from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDRaisedButton, MDFillRoundFlatButton
-from kivymd.uix.card import MDCard
-from kivymd.uix.label import MDLabel
-from kivymd.uix.scrollview import MDScrollView
-
 
 kv = '''
 <ClickableCard@MDCard>:
+    title: ""
+    amount: ""
+    elevation: 2
     size_hint: None, None
     size: dp(250), dp(120)
-    elevation: 2
     md_bg_color: 1, 1, 1, 1
     orientation: "vertical"
     padding: dp(10)
@@ -22,7 +18,7 @@ kv = '''
     MDBoxLayout:
         orientation: "vertical"
         MDLabel:
-            id: title_label
+            text: root.title
             halign: "center"
             theme_text_color: "Custom"
             text_color: 0, 0, 0, 1
@@ -30,85 +26,176 @@ kv = '''
             bold: True
             size_hint_y: None
             height: dp(40)
+
         MDLabel:
-            id: amount_label
+            text: root.amount
             halign: "center"
             theme_text_color: "Custom"
             font_style: "H6"
-            text_color: 1, 0, 0, 1
+            text_color: (0, 0.5, 0, 1) if "Income" in root.title else (1, 0, 0, 1)
 
 BoxLayout:
     orientation: "horizontal"
 
     MDBoxLayout:
-        id: nav_box
         orientation: "vertical"
-        size_hint_x: 0.25
+        size_hint_x: None
+        width: dp(250)
         padding: dp(10)
         spacing: dp(10)
         md_bg_color: 0.1, 0.1, 0.1, 1
 
-        MDLabel:
-            text: "TRANSACTIONS"
-            font_style: "H5"
-            halign: "left"
-            valign: "top"
-            theme_text_color: "Custom"
-            text_color: 1, 1, 1, 1
-            size_hint_y: None
-            height: dp(40)
+        BoxLayout:
+            orientation: "vertical"
+            size_hint_x: None
+            width: dp(220)
+            padding: dp(10)
+            spacing: dp(12)
 
-        MDRaisedButton:
-            text: "Dashboard"
-            on_release: app.screen_manager.current = "main"
+            MDRaisedButton:
+                text: "Dashboard"
+                size_hint: None, None
+                size: dp(200), dp(50)
+                on_release: app.root.ids.screen_manager.current = "Dashboard"
 
-        MDRaisedButton:
-            text: "Income"
-            on_release: app.show_income()
+            MDRaisedButton:
+                text: "Analytics"
+                size_hint: None, None
+                size: dp(200), dp(50)
+                on_release: app.root.ids.screen_manager.current = "Analytics"
 
-        MDRaisedButton:
-            text: "Expenses"
-            on_release: app.show_expenses()
+            MDRaisedButton:
+                text: "Savings"
+                size_hint: None, None
+                size: dp(200), dp(50)
+                on_release: app.root.ids.screen_manager.current = "Savings"
 
-        MDRaisedButton:
-            text: "Transaction"
+            MDRaisedButton:
+                text: "Transactions"
+                size_hint: None, None
+                size: dp(200), dp(50)
+                on_release: app.root.ids.screen_manager.current = "Settings"
+                
+            MDRaisedButton:
+                text: "Settings"
+                size_hint: None, None
+                size: dp(200), dp(50)
+                on_release: app.root.ids.screen_manager.current = "settings"
 
-        MDRaisedButton:
-            text: "Settings"
+        Widget:
+        Widget:
 
     ScreenManager:
         id: screen_manager
 
         Screen:
             name: "main"
+
             MDBoxLayout:
                 orientation: "vertical"
                 spacing: dp(10)
                 padding: dp(10)
 
                 MDLabel:
-                    text: "Dashboard"
-                    halign: "center"
+                    text: "Transaction"
+                    halign: "left"
                     font_style: "H4"
                     size_hint_y: None
                     height: dp(50)
 
                 MDBoxLayout:
                     spacing: dp(10)
-                    padding: dp(10)
-                    adaptive_height: True
+                    padding: dp(20)
+                    size_hint_y: None
+                    height: dp(150)
+
 
                     ClickableCard:
-                        title_label:
-                            text: "Balance"
-                        amount_label:
-                            text: "$5,000"
+                        title: "Total Income"
+                        amount: f"$ {app.total_income}"
+                        size_hint: 0.5, None 
+                        on_release: app.show_income()
 
                     ClickableCard:
-                        title_label:
-                            text: "Expenses"
-                        amount_label:
-                            text: "$1,500"
+                        title: "Total Expenses"
+                        amount: f"$ {app.total_expenses}"
+                        size_hint: 0.5, None
+                        on_release: app.show_expenses()
+
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: dp(40)
+                    padding: (dp(10), 0)
+
+                    MDLabel:
+                        text: "HISTORY"
+                        bold: True
+                        font_style: "H6"
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+                        halign: "left"
+
+                    Widget:
+
+                    MDFillRoundFlatButton:
+                        text: "Date"
+                        size_hint: None, None
+                        width: dp(100)
+                        height: dp(36)
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(20)
+                    padding: (dp(20), 0)
+                    size_hint_y: None
+                    height: dp(50)
+
+                    MDLabel:
+                        text: "Category"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Date"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Account"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Note"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Amount"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                ScrollView:
+                    MDBoxLayout:
+                        id: main_scroll_box
+                        orientation: "vertical"
+                        spacing: dp(10)
+                        size_hint_y: None
+                        padding: dp(10)
+                        height: self.minimum_height
+
 
         Screen:
             name: "income"
@@ -117,35 +204,93 @@ BoxLayout:
                 padding: dp(10)
                 spacing: dp(10)
 
-                MDLabel:
-                    text: "Income"
-                    font_style: "H4"
-                    halign: "center"
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(10)
+                    size_hint: None, None
+                    size: dp(250), dp(120)
+                    pos_hint: {"center_x": 0.5}
+
+                    ClickableCard:
+                        title: "Total Income"
+                        amount: f"${app.total_income:.2f}"
+                        on_touch_down:
+                            if self.collide_point(*args[1].pos): app.go_to_main_page()
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: dp(40)
+                    padding: (dp(10), 0)
+
+                    MDLabel:
+                        text: "HISTORY"
+                        bold: True
+                        font_style: "H6"
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+                        halign: "left"
+
+                    Widget:
+
+                    MDFillRoundFlatButton:
+                        text: "Date"
+                        size_hint: None, None
+                        width: dp(100)
+                        height: dp(36)
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(20)
+                    padding: (dp(20), 0)
                     size_hint_y: None
                     height: dp(50)
 
+                    MDLabel:
+                        text: "Category"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Date"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Account"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Note"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Amount"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
                 ScrollView:
                     MDBoxLayout:
+                        id: income_scroll_box
                         orientation: "vertical"
                         spacing: dp(10)
                         size_hint_y: None
+                        padding: dp(10)
                         height: self.minimum_height
 
-                        MDCard:
-                            size_hint: None, None
-                            size: dp(300), dp(100)
-                            padding: dp(10)
-                            MDLabel:
-                                text: "Salary - $2,000"
-                                halign: "center"
-
-                        MDCard:
-                            size_hint: None, None
-                            size: dp(300), dp(100)
-                            padding: dp(10)
-                            MDLabel:
-                                text: "Freelance - $500"
-                                halign: "center"
 
         Screen:
             name: "expenses"
@@ -154,322 +299,197 @@ BoxLayout:
                 padding: dp(10)
                 spacing: dp(10)
 
-                MDLabel:
-                    text: "Expenses"
-                    font_style: "H4"
-                    halign: "center"
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(10)
+                    size_hint: None, None
+                    size: dp(250), dp(120)
+                    pos_hint: {"center_x": 0.5}
+
+                    ClickableCard:
+                        title: "Total Expenses"
+                        amount: f"${app.total_expenses:.2f}"
+                        on_touch_down:
+                            if self.collide_point(*args[1].pos): app.go_to_main_page()
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    size_hint_y: None
+                    height: dp(40)
+                    padding: (dp(10), 0)
+
+                    MDLabel:
+                        text: "HISTORY"
+                        bold: True
+                        font_style: "H6"
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+                        halign: "left"
+
+                    Widget:
+
+                    MDFillRoundFlatButton:
+                        text: "Date"
+                        size_hint: None, None
+                        width: dp(100)
+                        height: dp(36)
+
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(20)
+                    padding: (dp(20), 0)
                     size_hint_y: None
                     height: dp(50)
 
+                    MDLabel:
+                        text: "Category"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Date"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Account"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Note"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
+                    MDLabel:
+                        text: "Amount"
+                        halign: "left"
+                        bold: True
+                        theme_text_color: "Custom"
+                        text_color: 0, 0, 0, 1
+
                 ScrollView:
                     MDBoxLayout:
+                        id: expenses_scroll_box
                         orientation: "vertical"
                         spacing: dp(10)
                         size_hint_y: None
+                        padding: dp(10)
                         height: self.minimum_height
-
-                        MDCard:
-                            size_hint: None, None
-                            size: dp(300), dp(100)
-                            padding: dp(10)
-                            MDLabel:
-                                text: "Groceries - $300"
-                                halign: "center"
-
-                        MDCard:
-                            size_hint: None, None
-                            size: dp(300), dp(100)
-                            padding: dp(10)
-                            MDLabel:
-                                text: "Rent - $1,000"
-                                halign: "center"
-
 '''
 
-
-
-income = 1000.00
-
-transactions = [
-    {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
-    {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
-    {"category": "Transport", "date": "2025-05-10", "account": "Card", "note": "Bus fare", "amount": 3.00},
-    {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
-    {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
-    {"category": "Food", "date": "2025-05-01", "account": "Cash", "note": "Lunch", "amount": -120},
-    {"category": "Salary", "date": "2025-05-05", "account": "Bank", "note": "Monthly Salary", "amount": 1500.00},
-
-]
-
-class ClickableCard(MDCard):
-    def __init__(self, title, amount, on_click, **kwargs):
+class TransactionRow(MDBoxLayout):
+    def __init__(self, transaction, **kwargs):
         super().__init__(**kwargs)
-        self.title = title
-        self.size_hint = (None, None)
-        self.size = (dp(250), dp(120))
-        self.elevation = 2
-        self.md_bg_color = (1, 1, 1, 1)
-        self.orientation = "vertical"
-        self.padding = dp(10)
-        self.on_click = on_click
+        self.orientation = "horizontal"
+        self.size_hint_y = None
+        self.height = dp(40)
+        self.padding = [dp(10), 0, dp(10), 0]
 
-        layout = MDBoxLayout(orientation="vertical")
-        self.add_widget(layout)
-
-        title_label = MDLabel( text=title, halign="center", theme_text_color="Custom", text_color=(0, 0, 0, 1), font_style="H5", bold=True, size_hint_y=None, height=dp(40),)
-
-        self.amount_label = MDLabel(text=amount, halign="center", theme_text_color="Custom", text_color=(1, 0, 0, 1), font_style="H6", )
-
-        layout.add_widget(title_label)
-        layout.add_widget(self.amount_label)
-
-    def on_touch_down(self, touch):
-        if self.collide_point(*touch.pos):
-            self.on_click()
-            return True
-        return super().on_touch_down(touch)
+        def create_label(text, color=(0, 0, 0, 1), size_hint_x=1):
+            from kivymd.uix.label import MDLabel
+            lbl = MDLabel(
+                text=text,
+                halign="left",
+                theme_text_color="Custom",
+                text_color=color,
+                size_hint_x=size_hint_x,
+                valign="middle",
+                shorten=True,
+                shorten_from="right",
+            )
+            lbl.bind(texture_size=lbl.setter('size'))
+            return lbl
 
 
-class MyApp(MDApp):
+        category_label = create_label(transaction['category'], size_hint_x=1.2)
+        date_label = create_label(transaction['date'], size_hint_x=1)
+        account_label = create_label(transaction['account'], size_hint_x=1)
+        note_label = create_label(transaction['note'], size_hint_x=1.5)
+
+        amount_color = (0, 0.5, 0, 1) if transaction['amount'] > 0 else (1, 0, 0, 1)
+        amount_label = create_label(f"${abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
+
+        self.add_widget(category_label)
+        self.add_widget(date_label)
+        self.add_widget(account_label)
+        self.add_widget(note_label)
+        self.add_widget(amount_label)
+
+
+
+class FinanceApp(MDApp):
+    total_income = 3000     #values sa income
+    total_expenses = 2000   #values sa expense
+
+    transactions = [
+        {"category": "Salary", "date": "2023-06-01", "account": "Bank", "note": "Monthly salary", "amount": 3000},
+        {"category": "Groceries", "date": "2023-06-02", "account": "Credit Card", "note": "Food", "amount": -150},
+        {"category": "Freelance", "date": "2023-06-03", "account": "Paypal", "note": "Project", "amount": 800},
+        {"category": "Rent", "date": "2023-06-05", "account": "Bank", "note": "Apartment", "amount": -1200},
+        {"category": "Investment", "date": "2023-06-07", "account": "Broker", "note": "Stocks", "amount": 500},
+        {"category": "Utilities", "date": "2023-06-08", "account": "Bank", "note": "Electricity", "amount": -200},
+    ] # values sa list
+
     def build(self):
-        root_layout = MDBoxLayout(orientation="horizontal")
+        self.title = "Finance App with KV String"
+        self.theme_cls.primary_palette = "Blue"
+        self.theme_cls.theme_style = "Light"
+        self.screen = Builder.load_string(kv)
 
-        # Navigation
-        nav_box = MDBoxLayout(orientation="vertical", size_hint_x=0.25, padding=dp(10), spacing=dp(10), md_bg_color=(0.1, 0.1, 0.1, 1),)
+        self.calc_totals()
+        self.populate_all()
 
-        nav_top = MDBoxLayout(orientation="vertical", spacing=dp(10), size_hint_y=None)
-        nav_top.bind(minimum_height=nav_top.setter("height"))
+        return self.screen
 
-        nav_top.add_widget(
-            MDLabel(text="TRANSACTIONS", font_style="H5", halign="left", valign="top", theme_text_color="Custom", text_color=(1, 1, 1, 1), size_hint_y= None, height=dp(40),
-            )
-        )
+    def calc_totals(self):
+        self.total_income = sum(t["amount"] for t in self.transactions if t["amount"] > 0)
+        self.total_expenses = -sum(t["amount"] for t in self.transactions if t["amount"] < 0)
 
-        nav_items = ["Dashboard", "Analytics", "Savings", "Transaction", "Settings"]
-        for item in nav_items:
-            btn = MDRaisedButton(
-                text=item,
-                height=dp(50),
-                size_hint=(1, None),
-                md_bg_color=(0.2, 0.6, 1, 1) if item == "Transaction" else (0, 0, 0, 0),
-                text_color=(1, 1, 1, 1),
-                elevation=8 if item == "Transaction" else 2,
-            )
-            btn.bind(on_release=lambda x, scr=item.lower(): setattr(self.screen_manager, 'current', scr))
-            nav_top.add_widget(btn)
+    def populate_all(self):
+        self.populate_main_history()
+        self.populate_income_history()
+        self.populate_expenses_history()
 
-        nav_box.add_widget(nav_top)
-        nav_box.add_widget(Widget())
+    def clear_layout(self, layout):
+        layout.clear_widgets()
 
-        self.screen_manager = ScreenManager()
+    def populate_main_history(self):
+        box = self.screen.ids.main_scroll_box
+        self.clear_layout(box)
+        for t in sorted(self.transactions, key=lambda x: x["date"], reverse=True):
+            box.add_widget(TransactionRow(t))
 
-#main screen
-        main_screen = Screen(name="main")
-        content_box = MDBoxLayout(orientation="vertical", padding=dp(50), spacing=dp(8))
+    def populate_income_history(self):
+        box = self.screen.ids.income_scroll_box
+        self.clear_layout(box)
+        for t in sorted([x for x in self.transactions if x["amount"] > 0], key=lambda x: x["date"], reverse=True):
+            box.add_widget(TransactionRow(t))
 
-        top_info_column = MDBoxLayout(orientation="vertical", size_hint_y=None, height=dp(600), padding=(dp(10), 0), spacing=dp(10))
-
-        transactions_label = MDLabel(text="TRANSACTIONS", halign="left", valign="top", size_hint_y = None, height=dp(100), theme_text_color="Custom", text_color=(0, 0, 0, 1), font_style="H4", bold=True,)
-
-        top_info_column.add_widget(transactions_label)
-
-        income_buttons_box = MDBoxLayout(
-            orientation="horizontal", spacing=dp(20), size_hint=(None, None), size=(dp(520), dp(120)), pos_hint={"center_x": 0.5},)
-
-        income_card = ClickableCard("Total Income", f"${income:.2f}", on_click=self.show_income)
-        income_card.amount_label.text_color = (0, 0.5, 0, 1)
-
-        total_expenses = sum(txn["amount"] for txn in transactions if txn["amount"] < 0)
-        expense_card = ClickableCard("Total Expenses", f"${-total_expenses:.2f}", on_click=self.show_expenses)
-        expense_card.amount_label.text_color = (1, 0, 0, 1)
-
-        income_buttons_box.add_widget(income_card)
-        income_buttons_box.add_widget(expense_card)
-        top_info_column.add_widget(income_buttons_box)
-
-        # history and date row
-        history_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40), padding=(dp(10), 0),)
-
-        history_label = MDLabel(text="HISTORY", bold=True, font_style="H6", theme_text_color="Custom", text_color=(0, 0, 0, 1), halign="left",)
-
-        date_button = MDFillRoundFlatButton(text="Date", size_hint=(None, None), width=dp(100), height=dp(36), pos_hint={"center_y": 0.5},)
-
-        history_row.add_widget(history_label)
-        history_row.add_widget(Widget())
-        history_row.add_widget(date_button)
-        top_info_column.add_widget(history_row)
-
-        # transaction columns
-        header = MDBoxLayout(orientation="horizontal", spacing=dp(20), padding=(dp(20), 0), size_hint_y=None, height=dp(50))
-        for title in ["Category", "Date", "Account", "Note", "Amount"]:
-            header.add_widget(
-                MDLabel(text=title, halign="left", bold=True, theme_text_color="Custom", text_color=(0, 0, 0, 1))
-            )
-
-        scroll = MDScrollView(size_hint=(1, 1), height=dp(300))
-        scroll_box = MDBoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10), padding=dp(10))
-        scroll_box.bind(minimum_height=scroll_box.setter("height"))
-
-        for txn in transactions:
-            row = MDBoxLayout(
-                orientation="horizontal", spacing=dp(20), size_hint_y=None, height=dp(40), padding=(dp(20), 0)
-            )
-            row.add_widget(MDLabel(text=txn["category"], halign="left"))
-            row.add_widget(MDLabel(text=txn["date"], halign="left"))
-            row.add_widget(MDLabel(text=txn["account"], halign="left"))
-            row.add_widget(MDLabel(text=txn["note"], halign="left"))
-            amount_color = (0, 0.5, 0, 1) if txn["amount"] > 0 else (1, 0, 0, 1)
-            row.add_widget(
-                MDLabel(
-                    text=f"{txn['amount']:+.2f}",
-                    halign="left",
-                    theme_text_color="Custom",
-                    text_color=amount_color,
-                )
-            )
-            scroll_box.add_widget(row)
-
-        scroll.add_widget(scroll_box)
-
-        top_info_column.add_widget(header)
-        top_info_column.add_widget(scroll)
-        content_box.add_widget(top_info_column)
-        main_screen.add_widget(content_box)
-
-        # income screen
-        income_screen = Screen(name="income")
-        income_layout = MDBoxLayout(orientation="vertical", padding=dp(10), spacing=dp(10))
-
-        top_info_column = MDBoxLayout(
-            orientation="vertical", size_hint_y=None, height=dp(600), padding=(dp(10), 0), spacing=dp(10)
-        )
-
-        income_label = MDLabel(text="TRANSACTION", halign="left", font_style="H5", theme_text_color="Custom", text_color=(0, 0, 0, 1), bold=True, size_hint_y=None, height=dp(50),)
-        top_info_column.add_widget(income_label)
-
-        income_buttons_box = MDBoxLayout(
-            orientation="horizontal", spacing=dp(20), size_hint=(None, None), size=(dp(250), dp(120)),pos_hint={"center_x": 0.5},)
-
-        income_card = ClickableCard("Total Income", f"${income:.2f}", on_click=self.show_income)
-        income_card.amount_label.text_color = (0, 0.5, 0, 1)
-
-        income_buttons_box.add_widget(income_card)
-        top_info_column.add_widget(income_buttons_box)
-
-        history_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        history_label = MDLabel(text="HISTORY", bold=True, font_style="H6", theme_text_color="Custom", text_color=(0, 0, 0, 1), halign="left")
-        date_button = MDFillRoundFlatButton(text="Date", size_hint=(None, None), width=dp(100), height=dp(36))
-        history_row.add_widget(history_label)
-        history_row.add_widget(Widget())
-        history_row.add_widget(date_button)
-        top_info_column.add_widget(history_row)
-
-        # Income Transactions
-        header = MDBoxLayout(orientation="horizontal", spacing=dp(20), padding=(dp(20), 0), size_hint_y=None, height=dp(50))
-        for title in ["Category", "Date", "Account", "Note", "Amount"]:
-            header.add_widget(
-                MDLabel(text=title, halign="left", bold=True, theme_text_color="Custom", text_color=(0, 0, 0, 1))
-            )
-
-        scroll = MDScrollView(size_hint=(1, None), height=dp(300))
-        scroll_box = MDBoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10), padding=dp(10))
-        scroll_box.bind(minimum_height=scroll_box.setter("height"))
-
-        for txn in transactions:
-            if txn["amount"] > 0:
-                row = MDBoxLayout(orientation="horizontal", spacing=dp(20), size_hint_y=None, height=dp(40), padding=(dp(20), 0))
-                row.add_widget(MDLabel(text=txn["category"], halign="left"))
-                row.add_widget(MDLabel(text=txn["date"], halign="left"))
-                row.add_widget(MDLabel(text=txn["account"], halign="left"))
-                row.add_widget(MDLabel(text=txn["note"], halign="left"))
-                row.add_widget(
-                    MDLabel(text=f"{txn['amount']:+.2f}", halign="left", theme_text_color="Custom", text_color=(0, 0.5, 0, 1),)
-                )
-                scroll_box.add_widget(row)
-
-        scroll.add_widget(scroll_box)
-        top_info_column.add_widget(header)
-        top_info_column.add_widget(scroll)
-        income_layout.add_widget(top_info_column)
-        income_screen.add_widget(income_layout)
-
-        # expenses screen
-        expenses_screen = Screen(name="expenses")
-        expenses_layout = MDBoxLayout(orientation="vertical", padding=dp(10), spacing=dp(10))
-
-        top_info_column = MDBoxLayout(
-            orientation="vertical", size_hint_y=None, height=dp(600), padding=(dp(10), 0), spacing=dp(10)
-        )
-
-        expenses_label = MDLabel( text="TRANSACTION", halign="left", font_style="H5", theme_text_color="Custom", text_color=(0, 0, 0, 1), bold=True, size_hint_y=None, height=dp(50),)
-
-        top_info_column.add_widget(expenses_label)
-
-        expense_buttons_box = MDBoxLayout(orientation="horizontal", spacing=dp(20), size_hint=(None, None), size=(dp(250), dp(120)), pos_hint={"center_x": 0.5},)
-
-        total_expenses = sum(txn["amount"] for txn in transactions if txn["amount"] < 0)
-        expense_card = ClickableCard("Total Expenses", f"${-total_expenses:.2f}", on_click=self.show_expenses)
-        expense_card.amount_label.text_color = (1, 0, 0, 1)
-
-        expense_buttons_box.add_widget(expense_card)
-        top_info_column.add_widget(expense_buttons_box)
-
-        history_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(40), padding=(dp(10), 0))
-        history_label = MDLabel(text="HISTORY", bold=True, font_style="H6", theme_text_color="Custom", text_color=(0, 0, 0, 1), halign="left")
-        date_button = MDFillRoundFlatButton(text="Date", size_hint=(None, None), width=dp(100), height=dp(36))
-        history_row.add_widget(history_label)
-        history_row.add_widget(Widget())
-        history_row.add_widget(date_button)
-        top_info_column.add_widget(history_row)
-
-        header = MDBoxLayout(orientation="horizontal", spacing=dp(20), padding=(dp(20), 0), size_hint_y=None, height=dp(50))
-        for title in ["Category", "Date", "Account", "Note", "Amount"]:
-            header.add_widget(
-                MDLabel(text=title, halign="left", bold=True, theme_text_color="Custom", text_color=(0, 0, 0, 1))
-            )
-
-        scroll = MDScrollView(size_hint=(1, None), height=dp(300))
-        scroll_box = MDBoxLayout(orientation="vertical", size_hint_y=None, spacing=dp(10), padding=dp(10))
-        scroll_box.bind(minimum_height=scroll_box.setter("height"))
-
-        for txn in transactions:
-            if txn["amount"] < 0:
-                row = MDBoxLayout(orientation="horizontal", spacing=dp(20), size_hint_y=None, height=dp(40), padding=(dp(20), 0))
-                row.add_widget(MDLabel(text=txn["category"], halign="left", size_hint_x = 0.2))
-                row.add_widget(MDLabel(text=txn["date"], halign="left",size_hint_x = 0.2))
-                row.add_widget(MDLabel(text=txn["account"], halign="left",size_hint_x = 0.2))
-                row.add_widget(MDLabel(text=txn["note"], halign="left",size_hint_x = 0.2))
-                row.add_widget(
-                    MDLabel(
-                        text=f"{txn['amount']:+.2f}",
-                        halign="left",
-                        theme_text_color="Custom",
-                        text_color=(1, 0, 0, 1),
-                    )
-                )
-                scroll_box.add_widget(row)
-
-        scroll.add_widget(scroll_box)
-        top_info_column.add_widget(header)
-        top_info_column.add_widget(scroll)
-        expenses_layout.add_widget(top_info_column)
-        expenses_screen.add_widget(expenses_layout)
-
-        self.screen_manager.add_widget(main_screen)
-        self.screen_manager.add_widget(income_screen)
-        self.screen_manager.add_widget(expenses_screen)
-
-        root_layout.add_widget(nav_box)
-        root_layout.add_widget(self.screen_manager)
-
-        return root_layout
+    def populate_expenses_history(self):
+        box = self.screen.ids.expenses_scroll_box
+        self.clear_layout(box)
+        for t in sorted([x for x in self.transactions if x["amount"] < 0], key=lambda x: x["date"], reverse=True):
+            box.add_widget(TransactionRow(t))
 
     def show_income(self):
-        self.screen_manager.current = "income"
+        self.screen.ids.screen_manager.current = "income"
 
     def show_expenses(self):
-        self.screen_manager.current = "expenses"
+        self.screen.ids.screen_manager.current = "expenses"
+
+    def go_to_main_page(self):
+        self.screen.ids.screen_manager.current = "main"
 
 
 if __name__ == "__main__":
-    MyApp().run()
+    FinanceApp().run()
