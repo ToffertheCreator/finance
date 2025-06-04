@@ -47,8 +47,8 @@ kv_string = """
         icon: "close"
         theme_text_color: "Custom"
         text_color: 1, 1, 1, 1
-        pos_hint: {'center_y': .5} 
-        on_release: app.root.dismiss_current_dialog() 
+        pos_hint: {'center_y': .5, 'right': 1}
+        on_release: app.root.get_screen('dashboard').dismiss_current_dialog()
 
     MDBoxLayout: 
         orientation: "vertical"
@@ -94,7 +94,7 @@ kv_string = """
             MDRaisedButton: 
                 text: "Save"
                 md_bg_color: get_color_from_hex("#F89411")
-                on_release: app.root.save_transaction_action(root.dialog_type, app.root.dialog)
+                on_release: app.root.get_screen('dashboard').save_transaction_action(root.dialog_type, app.root.get_screen('dashboard').dialog)
                 size_hint_x: 100
                 size_hint_y: 0
                 height: dp(48) 
