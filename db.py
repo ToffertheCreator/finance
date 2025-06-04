@@ -14,7 +14,8 @@ from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.toolbar import MDTopAppBar
 from kivy.lang import Builder
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, ObjectProperty
+from kivy.clock import Clock
 
 transactions_data = [
     {"category": "Allowance", "date": "05/09/2025", "account": "Cash", "note": "Galing kay papa", "amount": 1000.00, "type": "income"},
@@ -197,6 +198,7 @@ kv_string = """
                         spacing: dp(20)
                         adaptive_height: True
                         size_hint_y: None
+                        width: self.parent.width
 
                         MDBoxLayout:
                             orientation: 'horizontal'
@@ -274,6 +276,7 @@ kv_string = """
                             adaptive_height: True
                             elevation: 1
                             radius: [15, 15, 15, 15]
+                            size_hint_x: 1
                             MDLabel:
                                 text: "Recent Transactions"
                                 font_style: "H6"
@@ -285,6 +288,9 @@ kv_string = """
                             MDBoxLayout:
                                 id: transactions_table_container
                                 adaptive_height: True
+                                size_hint_y: None
+                                size_hint_x: 1
+                                height: self.minimum_height
                                 padding: 0, dp(10), 0, 0
 
             MDFloatingActionButton:
@@ -346,48 +352,77 @@ class DialogContent(MDBoxLayout):
         self.ids.amount_field.helper_text = ""
 
 class DashboardScreen(MDScreen):
+    dialog = ObjectProperty(None, allownone=True) 
+    
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = 'dashboard'
-        self.dialog = None 
+        self.bind(on_kv_post_build=self.on_dashboard_screen_post_build)
 
-        self.bind(on_kv_post_build=self.update_dashboard)
+    def on_dashboard_screen_post_build(self, *args):
+        self.update_dashboard()
+        Clock.schedule_once(lambda dt: self.ids.transactions_table_container.bind(width=self.on_table_container_width_changed))
 
-    def create_summary_card(self, title_text, amount, amount_color):
-        pass
+    def on_table_container_width_changed(self, instance, value):
+        Clock.schedule_once(lambda dt: self.populate_transactions_table())
 
     def update_dashboard(self, *args):
         total_income = sum(t['amount'] for t in transactions_data if t['type'] == 'income')
         total_expense = sum(t['amount'] for t in transactions_data if t['type'] == 'expense')
         remaining = total_income - total_expense
 
-        self.ids.income_amount_label.text = f"{total_income:,.2f}"
-        self.ids.expense_amount_label.text = f"{total_expense:,.2f}"
-        self.ids.remaining_amount_label.text = f"{remaining:,.2f}"
+        self.ids.income_amount_label.text = f"₱{total_income:,.2f}"
+        self.ids.expense_amount_label.text = f"₱{total_expense:,.2f}"
+        self.ids.remaining_amount_label.text = f"₱{remaining:,.2f}"
         self.ids.remaining_amount_label.text_color = get_color_from_hex("#4CAF50") if remaining >= 0 else get_color_from_hex("#F44336")
-
         self.populate_transactions_table()
 
     def populate_transactions_table(self):
-        self.ids.transactions_table_container.clear_widgets()
-        column_data = [
-            ("Category", dp(30)), ("Date", dp(25)), ("Account", dp(20)),
-            ("Note", dp(40)), ("Amount", dp(20), None, "right")
-        ]
-
-        row_data = [(t['category'], t['date'], t['account'], t['note'], f"{t['amount']:,.2f}") for t in reversed(transactions_data)]
+        container = self.ids.transactions_table_container
+        container.clear_widgets()
+        row_data = [(t['category'], t['date'], t['account'], t['note'], f"₱{t['amount']:,.2f}") for t in reversed(transactions_data)]
 
         if row_data:
             num_rows = len(row_data)
-            table_height = dp(num_rows * 48 + 56)
+            table_header_height = dp(56)
+            row_height = dp(48)
+            table_height = table_header_height + (num_rows * row_height)
+            table_width_available = container.width
+            column_weights = [0.1, 0.1, 0.1, 0.1, 0.1]
+
+            col_category_width = table_width_available * column_weights[0]
+            col_date_width = table_width_available * column_weights[1]
+            col_account_width = table_width_available * column_weights[1]
+            col_note_width = table_width_available * column_weights[1]
+            col_amount_width = table_width_available * column_weights[1]
+
+            min_dp_width_per_col = dp(10) 
+            col_category_width = max(col_category_width, min_dp_width_per_col)
+            col_date_width = max(col_date_width, min_dp_width_per_col)
+            col_account_width = max(col_account_width, min_dp_width_per_col)
+            col_note_width = max(col_note_width, min_dp_width_per_col)
+            col_amount_width = max(col_amount_width, min_dp_width_per_col)
+
+            column_data = [
+                ("Category", col_category_width),
+                ("Date", col_date_width),
+                ("Account", col_account_width),
+                ("Note", col_note_width),
+                ("Amount", col_amount_width, None, "right")
+            ]
             data_table = MDDataTable(
-                size_hint=(1, None), height=table_height,
+                size_hint=(1, None), 
+                height=table_height,
                 use_pagination=False,
-                column_data=column_data, row_data=row_data, elevation=0,
+                column_data=column_data, 
+                row_data=row_data, 
+                elevation=0,
             )
-            self.ids.transactions_table_container.add_widget(data_table)
-        else:
-            self.ids.transactions_table_container.add_widget(
+            container.bind(width=data_table.setter('width'))
+            container.add_widget(data_table)
+        else: 
+            container.height = dp(100)
+            container.add_widget(
                 MDLabel(text="No transactions yet.", halign="center", theme_text_color="Hint", padding=(0, dp(20)))
             )
 
@@ -442,13 +477,29 @@ class DashboardScreen(MDScreen):
 
         dialog_instance.content_cls.ids.amount_field.error = False
         dialog_instance.content_cls.ids.amount_field.helper_text = ""
+        dialog_instance.content_cls.ids.category_field.error = False
+        dialog_instance.content_cls.ids.date_field.error = False
+        dialog_instance.content_cls.ids.account_field.error = False
+
 
         try:
             amount_val = float(data['amount'])
-
-            if not all([data['category'], data['date'], data['account']]) or amount_val <= 0:
+            missing_fields = []
+            if not data['category']:
+                missing_fields.append("Category")
+                dialog_instance.content_cls.ids.category_field.error = True
+            if not data['date']:
+                missing_fields.append("Date")
+                dialog_instance.content_cls.ids.date_field.error = True
+            if not data['account']:
+                missing_fields.append("Account")
+                dialog_instance.content_cls.ids.account_field.error = True
+            if amount_val <= 0:
+                missing_fields.append("Amount (> 0)")
                 dialog_instance.content_cls.ids.amount_field.error = True
-                dialog_instance.content_cls.ids.amount_field.helper_text = "Category, Date, Account must be filled. Amount must be > 0."
+            if missing_fields:
+                error_msg = f"Please fill: {', '.join(missing_fields)}."
+                dialog_instance.content_cls.ids.amount_field.helper_text = error_msg
                 return
         except ValueError:
             dialog_instance.content_cls.ids.amount_field.error = True
