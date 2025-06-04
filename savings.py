@@ -1,124 +1,309 @@
+from kivy.metrics import dp
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.properties import StringProperty
 from kivymd.app import MDApp
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.label import MDLabel
 from kivymd.uix.card import MDCard
-from kivymd.uix.gridlayout import MDGridLayout
+from kivy.lang import Builder
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.button import MDRaisedButton
+from kivymd.uix.scrollview import MDScrollView
 
 
-class SAVINGS(MDBoxLayout):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = "horizontal"
+KV = '''
+<Sidebar@MDBoxLayout>:
+    orientation: 'vertical'
+    size_hint_x: None
+    width: dp(200)
+    size_hint_y: None
+    height: self.minimum_height
+    padding: dp(16), dp(8), dp(16), dp(16)  # top padding reduced
+    spacing: dp(12)
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
 
-        # Sidebar
-        self.add_widget(self.build_sidebar())
+    MDLabel:
+        text: "Finance Tracker"
+        font_style: "H5"
+        size_hint_y: None
+        height: self.texture_size[1]
 
-        # Main Content
-        self.add_widget(self.build_main_content())
+    MDSeparator:
+        height: dp(1)
 
-    def build_sidebar(self):
-        sidebar = MDBoxLayout(
-            orientation="vertical",
-            size_hint=(0.25, 1),
-            md_bg_color=[0.1, 0.1, 0.1, 1],
-            padding=10,
-            spacing=15
-        )
-        sidebar.add_widget(
-            MDLabel(
-                text="FINANCE TRACKER",
-                theme_text_color="Custom",
-                text_color=[1, 1, 1, 1],
-                bold=True,
-                halign="left"
-            )
-        )
-        sections = ["Dashboard", "Analytics", "Savings", "Transaction", "Settings"]
-        for section in sections:
-            color = [1, 1, 1, 1] if section == "Savings" else [0.7, 0.7, 0.7, 1]
-            sidebar.add_widget(
-                MDLabel(
-                    text=section,
-                    theme_text_color="Custom",
-                    text_color=color,
-                    halign="left"
-                )
-            )
-        return sidebar
+    MDLabel:
+        text: "Dashboard"
+        font_style: "Subtitle1"
+        size_hint_y: None
+        height: self.texture_size[1]
 
-    def build_main_content(self):
-        content = MDBoxLayout(
-            orientation="vertical",
-            padding=20,
-            spacing=20
-        )
+    MDRaisedButton:
+        text: "Dashboard"
+        size_hint_y: None
+        height: dp(40)
 
-        # Header
-        header = MDBoxLayout(orientation="horizontal", size_hint=(1, None), height=50)
-        header.add_widget(
-            MDLabel(
-                text="SAVINGS",
-                bold=True,
-                text_color= [1, 1, 1, 1],
-                halign="left"
-            )
-        )
-        # Replacing button with styled label (for outline purposes)
-        header.add_widget(
-            MDLabel(
-                text="[ Add new savings + ]",
-                theme_text_color="Custom",
-                text_color=[1, 0.5, 0, 1],
-                halign="right"
-            )
-        )
-        content.add_widget(header)
+    MDRaisedButton:
+        text: "Analytics"
+        size_hint_y: None
+        height: dp(40)
 
-        # Circular Progress Cards (placeholders)
-        progress_cards = MDBoxLayout(orientation="horizontal", spacing=20, size_hint=(1, None), height=180)
-        for title in ["sample 1", "sample 2", "sample 3"]:
-            card = MDCard(orientation="vertical", size_hint=(None, None), size=(200, 180), padding=10, radius=[15])
-            card.add_widget(MDLabel(text="10%", halign="center"))
-            card.add_widget(MDLabel(text=title, halign="center" ))
-            card.add_widget(MDLabel(text="1000/20000", halign="center"))
-            progress_cards.add_widget(card)
-        content.add_widget(progress_cards)
+    MDRaisedButton:
+        text: "Savings"
+        size_hint_y: None
+        height: dp(40)
 
-        # History Card
-        history_card = MDCard(orientation="vertical", padding=15, size_hint=(1, None), height=250, radius=[15])
-        history_card.add_widget(MDLabel(text="History", halign="left"))
+    MDRaisedButton:
+        text: "Transactions"
+        size_hint_y: None
+        height: dp(40)
 
-        # Fake Table using GridLayout
-        table = MDGridLayout(cols=3, spacing=10, size_hint_y=None)
-        table.bind(minimum_height=table.setter('height'))
+    MDRaisedButton:
+        text: "Settings"
+        size_hint_y: None
+        height: dp(40)
 
-        headers = ["[b]Name[/b]", "[b]Date[/b]", "[b]Amount[/b]"]
-        for head in headers:
-            table.add_widget(MDLabel(text=head, markup=True))
+ScreenManager:
+    MainScreen:
+        name: "main"
 
-        # Static rows
-        rows = [
-            ("sample 1", "05/09/2025", "[color=00FF00]1000.00[/color]"),
-            ("sample 2", "05/09/2025", "[color=00FF00]1000.00[/color]"),
-            ("sample 3", "05/09/2025", "[color=00FF00]1000.00[/color]"),
-        ]
-        for name, date, amount in rows:
-            table.add_widget(MDLabel(text=name))
-            table.add_widget(MDLabel(text=date))
-            table.add_widget(MDLabel(text=amount, markup=True))
+<ChartCard>:
+    size_hint: None, None
+    size: dp(130), dp(150)
+    padding: dp(12)
+    orientation: 'vertical'
+    md_bg_color: 1,1,1,0.05
+    radius: [dp(12),]
+    elevation: 2
 
-        history_card.add_widget(table)
-        content.add_widget(history_card)
+    MDLabel:
+        id: percent
+        text: "10%"
+        font_style: "H4"
+        halign: "center"
+        size_hint_y: None
+        height: self.texture_size[1]
 
-        return content
+    MDLabel:
+        id: label
+        text: root.label_text
+        font_style: "Button"
+        halign: "center"
+        shorten: True
+        shorten_from: "right"
+        size_hint_y: None
+        height: self.texture_size[1]
 
+    MDLabel:
+        id: figures
+        text: root.figures_text
+        font_style: "Caption"
+        halign: "center"
+        size_hint_y: None
+        height: self.texture_size[1]
+        theme_text_color: "Secondary"
 
-class SavingsApp(MDApp):
+<HistoryTable@MDBoxLayout>:
+    orientation: 'vertical'
+    size_hint_y: None
+    height: self.minimum_height
+    padding: 0, dp(8)
+    spacing: dp(4)
+
+    MDBoxLayout:
+        size_hint_y: None
+        height: dp(32)
+        MDLabel:
+            text: "Name"
+            font_style: "Subtitle2"
+            bold: True
+        MDLabel:
+            text: "Date"
+            font_style: "Subtitle2"
+            bold: True
+        MDLabel:
+            text: "Amount"
+            font_style: "Subtitle2"
+            bold: True
+            halign: 'right'
+
+    MDSeparator:
+        height: dp(1)
+        color: 1,1,1,0.1
+
+<MainScreen>:
+    MDBoxLayout:
+        orientation: 'horizontal'
+
+        AnchorLayout:
+            anchor_x: 'left'
+            anchor_y: 'top'
+            size_hint_x: None
+            width: dp(200)
+
+            Sidebar:
+
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: dp(16)
+            spacing: dp(16)
+            canvas.before:
+                Color:
+                    rgba: 0.07, 0.07, 0.07, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+            MDBoxLayout:
+                size_hint_y: None
+                height: dp(48)
+                padding: 0, 0, dp(16), 0
+                MDLabel:
+                    text: "SAVINGS"
+                    font_style: "H4"
+                    bold: True
+                    size_hint_x: 0.9
+                    valign: 'middle'
+
+                MDFillRoundFlatButton:
+                    id: add_savings_btn
+                    text: "Add new savings \u25BE"
+                    md_bg_color: 1, 0.6, 0, 1
+                    text_color: 1,1,1,1
+                    size_hint: None, None
+                    size: dp(160), dp(36)
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.show_popup()
+
+            MDBoxLayout:
+                id: chart_area
+                size_hint_y: None
+                height: dp(160)
+                spacing: dp(16)
+                padding: 0,0,0,dp(8)
+
+                ChartCard:
+                    label_text: "world domination fund"
+                    figures_text: "1000/20000"
+
+                ChartCard:
+                    label_text: "vacation"
+                    figures_text: "250/5000"
+
+                ChartCard:
+                    label_text: "car repair"
+                    figures_text: "150/1000"
+
+            MDLabel:
+                text: "History"
+                font_style: "H6"
+                size_hint_y: None
+                height: self.texture_size[1]
+
+            MDScrollView:
+                MDBoxLayout:
+                    id: history_container
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+
+                    HistoryTable:
+'''
+
+class ChartCard(MDCard):
+    label_text = StringProperty("")
+    figures_text = StringProperty("")
+
+class MainScreen(Screen):
+    pass
+
+class FinanceTrackerApp(MDApp):
+    dialog = None
+
     def build(self):
-        self.theme_cls.theme_style = "Light"
-        return SAVINGS()
+        self.theme_cls.theme_style = "Dark"
+        self.theme_cls.primary_palette = "DeepPurple"
+        return Builder.load_string(KV)
 
-#GUIDE ME LORD
+    def show_popup(self):
+        from kivy.uix.boxlayout import BoxLayout
+        from kivymd.uix.textfield import MDTextField
+        from kivymd.uix.label import MDLabel
+
+        content = BoxLayout(orientation='vertical', spacing=dp(12), padding=dp(16), size_hint_y=None)
+        content.bind(minimum_height=content.setter('height'))
+
+        self.name_input = MDTextField(hint_text="Enter name", mode="rectangle", size_hint_y=None, height=dp(40))
+        self.date_input = MDTextField(hint_text="Enter date", mode="rectangle", size_hint_y=None, height=dp(40))
+        self.value_input = MDTextField(hint_text="Enter value", mode="rectangle", size_hint_y=None, height=dp(40))
+        self.target_input = MDTextField(hint_text="Enter target amount", mode="rectangle", size_hint_y=None, height=dp(40))
+
+        for label, field in [("Name", self.name_input), ("Date", self.date_input), ("Value", self.value_input), ("Target Amount", self.target_input)]:
+            content.add_widget(MDLabel(text=label, theme_text_color="Secondary", font_style="Caption", size_hint_y=None, height=dp(16)))
+            content.add_widget(field)
+
+        self.dialog = MDDialog(
+            title="Add New Savings",
+            type="custom",
+            content_cls=content,
+            buttons=[
+                MDRaisedButton(text="CANCEL", on_release=lambda x: self.dialog.dismiss()),
+                MDRaisedButton(text="SAVE", on_release=lambda x: self.save_savings())
+            ]
+        )
+        self.dialog.open()
+
+    def save_savings(self):
+        name = self.name_input.text.strip()
+        date = self.date_input.text.strip()
+        value = self.value_input.text.strip()
+        target = self.target_input.text.strip()
+
+        if not name or not date or not value or not target:
+            print("Please fill in all required fields (Name, Date, Value, Target).")
+            return
+
+        try:
+            value_num = float(value)
+            target_num = float(target)
+        except ValueError:
+            print("Value and Target must be numbers.")
+            return
+
+        percent = int((value_num / target_num) * 100) if target_num != 0 else 0
+
+        main_screen = self.root.get_screen("main")
+        history_container = main_screen.ids.history_container
+
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivymd.uix.label import MDLabel
+
+        # Add new row to history table
+        new_row = MDBoxLayout(size_hint_y=None, height=dp(28))
+        name_label = MDLabel(text=name, font_style="Body2", shorten=True)
+        date_label = MDLabel(text=date, font_style="Body2")
+        value_label = MDLabel(text=f"[color=00FF00]{value}[/color]", markup=True, font_style="Body2", halign="right")
+
+        new_row.add_widget(name_label)
+        new_row.add_widget(date_label)
+        new_row.add_widget(value_label)
+
+        history_container.add_widget(new_row)
+        history_container.height = history_container.minimum_height
+
+        # Add new ChartCard dynamically
+        chart_area = main_screen.ids.chart_area
+        new_card = ChartCard()
+        new_card.label_text = name
+        new_card.figures_text = f"{value}/{target}"
+        new_card.ids.percent.text = f"{percent}%"
+
+        chart_area.add_widget(new_card)
+
+        self.dialog.dismiss()
+        self.dialog = None
+
 if __name__ == "__main__":
-    SavingsApp().run()
-
+    FinanceTrackerApp().run()
