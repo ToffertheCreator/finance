@@ -63,7 +63,7 @@ kv = '''
                 text: "Dashboard"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.root.ids.screen_manager.current = "main"
+                on_release: app.go_to_dashboard()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -73,7 +73,7 @@ kv = '''
                 text: "Analytics"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.root.ids.screen_manager.current = "analytics"
+                on_release: app.go_to_analytics()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -142,13 +142,13 @@ kv = '''
 
                             ClickableCard:
                                 title: "Total Income"
-                                amount: f"${root.total_income:.2f}"
+                                amount: f"{root.total_income:.2f}"
                                 size_hint: 0.5, None 
                                 on_release: root.show_income()
 
                             ClickableCard:
                                 title: "Total Expenses"
-                                amount: f"${root.total_expenses:.2f}"
+                                amount: f"{root.total_expenses:.2f}"
                                 size_hint: 0.5, None
                                 on_release: root.show_expenses()
 
@@ -161,7 +161,7 @@ kv = '''
                             radius: [15, 15, 15, 15]
 
                             MDLabel:
-                                text: "Recent Transactions"
+                                text: "All Transactions"
                                 font_style: "H6"
                                 adaptive_height: True
 
@@ -244,78 +244,78 @@ kv = '''
                                 amount: f"${root.total_income:.2f}"
                                 on_release: root.go_to_main_page()
 
-                        MDBoxLayout:
-                            orientation: "horizontal"
-                            size_hint_y: None
-                            height: dp(40)
-                            padding: (dp(10), 0)
+                        MDCard:  # Enclose transaction history in a card
+                            orientation: 'vertical'
+                            padding: dp(15)
+                            spacing: dp(10)
+                            size_hint_y: 1
+                            elevation: 1
+                            radius: [15, 15, 15, 15]
 
                             MDLabel:
-                                text: "HISTORY"
-                                bold: True
+                                text: "All Transactions"
                                 font_style: "H6"
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-                                halign: "left"
-
-                            Widget:
-
-                            MDFillRoundFlatButton:
-                                text: "Date"
-                                size_hint: None, None
-                                width: dp(100)
-                                height: dp(36)
-
-                        MDBoxLayout:
-                            orientation: "horizontal"
-                            spacing: dp(20)
-                            padding: (dp(20), 0)
-                            size_hint_y: None
-                            height: dp(50)
+                                adaptive_height: True
 
                             MDLabel:
-                                text: "Category"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
+                                text: "All your transactions are recorded"
+                                theme_text_color: "Hint"
+                                adaptive_height: True
 
-                            MDLabel:
-                                text: "Date"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Account"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Note"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Amount"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                        ScrollView:
-                            MDBoxLayout:
-                                id: income_scroll_box
-                                orientation: "vertical"
-                                spacing: dp(10)
+                            MDBoxLayout:  # Header
+                                orientation: "horizontal"
                                 size_hint_y: None
-                                padding: dp(10)
-                                height: self.minimum_height
+                                height: dp(40)
+                                padding: (dp(10), 0)
+
+                                MDLabel:
+                                    text: "Category"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.2
+
+                                MDLabel:
+                                    text: "Date"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Account"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Note"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.5
+
+                                MDLabel:
+                                    text: "Amount"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 0.8
+
+                            ScrollView:
+                                MDBoxLayout:
+                                    id: income_scroll_box
+                                    orientation: "vertical"
+                                    spacing: dp(10)
+                                    size_hint_y: None
+                                    padding: dp(10)
+                                    height: self.minimum_height
 
 
                 Screen:
@@ -337,78 +337,78 @@ kv = '''
                                 amount: f"${root.total_expenses:.2f}"
                                 on_release: root.go_to_main_page()
 
-                        MDBoxLayout:
-                            orientation: "horizontal"
-                            size_hint_y: None
-                            height: dp(40)
-                            padding: (dp(10), 0)
+                        MDCard:  # Enclose transaction history in a card
+                            orientation: 'vertical'
+                            padding: dp(15)
+                            spacing: dp(10)
+                            size_hint_y: 1
+                            elevation: 1
+                            radius: [15, 15, 15, 15]
 
                             MDLabel:
-                                text: "HISTORY"
-                                bold: True
+                                text: "All Transactions"
                                 font_style: "H6"
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-                                halign: "left"
-
-                            Widget:
-
-                            MDFillRoundFlatButton:
-                                text: "Date"
-                                size_hint: None, None
-                                width: dp(100)
-                                height: dp(36)
-
-                        MDBoxLayout:
-                            orientation: "horizontal"
-                            spacing: dp(20)
-                            padding: (dp(20), 0)
-                            size_hint_y: None
-                            height: dp(50)
+                                adaptive_height: True
 
                             MDLabel:
-                                text: "Category"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
+                                text: "All your transactions are recorded"
+                                theme_text_color: "Hint"
+                                adaptive_height: True
 
-                            MDLabel:
-                                text: "Date"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Account"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Note"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                            MDLabel:
-                                text: "Amount"
-                                halign: "left"
-                                bold: True
-                                theme_text_color: "Custom"
-                                text_color: 0, 0, 0, 1
-
-                        ScrollView:
-                            MDBoxLayout:
-                                id: expenses_scroll_box
-                                orientation: "vertical"
-                                spacing: dp(10)
+                            MDBoxLayout:  # Header
+                                orientation: "horizontal"
                                 size_hint_y: None
-                                padding: dp(10)
-                                height: self.minimum_height
+                                height: dp(40)
+                                padding: (dp(10), 0)
+
+                                MDLabel:
+                                    text: "Category"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.2
+
+                                MDLabel:
+                                    text: "Date"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Account"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1
+
+                                MDLabel:
+                                    text: "Note"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 1.5
+
+                                MDLabel:
+                                    text: "Amount"
+                                    halign: "left"
+                                    bold: True
+                                    theme_text_color: "Custom"
+                                    text_color: 0, 0, 0, 1
+                                    size_hint_x: 0.8
+
+                            ScrollView:
+                                MDBoxLayout:
+                                    id: expenses_scroll_box
+                                    orientation: "vertical"
+                                    spacing: dp(10)
+                                    size_hint_y: None
+                                    padding: dp(10)
+                                    height: self.minimum_height
 '''
 
 class TransactionRow(MDBoxLayout):
@@ -450,8 +450,8 @@ class TransactionRow(MDBoxLayout):
         self.add_widget(amount_label)
 
 class TransactionsScreen(MDScreen):
-    total_income = NumericProperty(3000)
-    total_expenses = NumericProperty(2000)
+    total_income = NumericProperty(0.0)
+    total_expenses = NumericProperty(0.0)
     transactions = ListProperty([])
 
     def calc_totals(self):
@@ -493,16 +493,16 @@ class TransactionsScreen(MDScreen):
     def go_to_main_page(self):
         self.ids.screen_manager.current = "main"
 
-class FinanceApp(MDApp):
-    def build(self):
-        self.title = "Finance App with KV String"
-        self.theme_cls.primary_palette = "Blue"
-        self.theme_cls.theme_style = "Light"
-        Builder.load_string(kv)
-        self.screen = TransactionsScreen()
-        self.screen.calc_totals()
-        self.screen.populate_all()
-        return self.screen
+# class FinanceApp(MDApp):
+#     def build(self):
+#         self.title = "Finance App with KV String"
+#         self.theme_cls.primary_palette = "Blue"
+#         self.theme_cls.theme_style = "Light"
+#         Builder.load_string(kv)
+#         self.screen = TransactionsScreen()
+#         self.screen.calc_totals()
+#         self.screen.populate_all()
+#         return self.screen
     
-if __name__ == "__main__":
-    FinanceApp().run()
+# if __name__ == "__main__":
+#     FinanceApp().run()
