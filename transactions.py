@@ -43,7 +43,7 @@ kv = '''
         MDBoxLayout:
             id: nav_drawer_panel
             orientation: "vertical"
-            padding: dp(10)
+            #padding: dp(10)
             spacing: dp(15)
             size_hint_x: None
             width: dp(230)
@@ -92,12 +92,13 @@ kv = '''
             MDFlatButton:
                 text: "Transactions"
                 size_hint_y: None
+                size_hint_x: 1
                 height: dp(40)
-                on_release: app.root.ids.screen_manager.current = "transactions"
+                md_bg_color: 1,1,1,1
                 theme_text_color: "Custom"
-                text_color: 0.9, 0.9, 0.9, 1
-                halign: "left"
-                padding: dp(15), 0
+                text_color: 0, 0, 0, 1
+                halign: "center"
+                padding: 0, 0
 
             MDFlatButton:
                 text: "Settings"
@@ -130,6 +131,7 @@ kv = '''
                         MDLabel:
                             text: "TRANSACTIONS"
                             halign: "left"
+                            bold: True
                             font_style: "H4"
                             size_hint_y: None
                             height: dp(50)

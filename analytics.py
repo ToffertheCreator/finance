@@ -14,7 +14,7 @@ KV = '''
         MDBoxLayout:
             id: sidebar
             orientation: "vertical"
-            padding: dp(10)
+            #padding: dp(10)
             spacing: dp(15)
             size_hint_x: None
             width: dp(230)
@@ -43,13 +43,14 @@ KV = '''
             MDFlatButton:
                 text: "Analytics"
                 size_hint_y: None
+                size_hint_x: 1
                 height: dp(40)
-                md_bg_color: 1, 0.98, 0.93, 1  # Highlighted background
+                md_bg_color: 1,1,1,1  # Highlighted background
                 theme_text_color: "Custom"
                 text_color: 0, 0, 0, 1
                 bold: True
-                halign: "left"
-                padding: dp(15), 0
+                halign: "center"
+                padding: 0, 0
 
             MDFlatButton:
                 text: "Savings"
@@ -65,7 +66,7 @@ KV = '''
                 text: "Transactions"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.go_to_transactions()
+                on_release: app.go_to_transactions()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"

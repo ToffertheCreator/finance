@@ -108,7 +108,7 @@ kv_string = """
         MDBoxLayout:
             id: nav_drawer_panel
             orientation: "vertical"
-            padding: dp(10)
+            #padding: dp(10)
             spacing: dp(15)
             size_hint_x: None
             width: dp(230)
@@ -125,12 +125,14 @@ kv_string = """
             MDFlatButton:
                 text: "Dashboard"
                 size_hint_y: None
+                size_hint_x: 1
                 height: dp(40)
                 on_release: root.on_nav_item_press()
+                md_bg_color: 1, 1, 1, 1
                 theme_text_color: "Custom"
-                text_color: 0.9, 0.9, 0.9, 1
-                halign: "left"
-                padding: dp(15), 0
+                text_color: 0, 0, 0, 1
+                halign: "center"
+                padding: 0, 0
             MDFlatButton:
                 text: "Analytics"
                 size_hint_y: None
@@ -153,7 +155,7 @@ kv_string = """
                 text: "Transaction"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.on_nav_item_press()
+                on_release: app.go_to_transactions()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
