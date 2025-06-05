@@ -1,21 +1,21 @@
-from kivymd.app import MDApp
+from kivymd.app import MDApp  # Import MDApp
 from kivy.uix.screenmanager import ScreenManager, Screen
 from dashboard import DashboardScreen, kv_string
-from analytics import AnalyticsScreen, KV  # Import AnalyticsScreen and KV
+from analytics import KV, AnalyticsScreen
 from kivy.lang import Builder
 
 class ScreenManagement(ScreenManager):
     def __init__(self, **kwargs):
         super(ScreenManagement, self).__init__(**kwargs)
 
-class MainApp(MDApp):
+class MainApp(MDApp):  # Inherit from MDApp
     def build(self):
         Builder.load_string(kv_string)  # Load dashboard KV
-        Builder.load_string(KV)         # Load analytics KV
+        Builder.load_string(KV)  # Load analytics KV
         sm = ScreenManagement()
         sm.add_widget(DashboardScreen(name='dashboard'))
-        sm.add_widget(AnalyticsScreen(name='analytics'))  # Add AnalyticsScreen properly
-        self.sm = sm
+        sm.add_widget(AnalyticsScreen(name='analytics'))
+        self.sm = sm 
         return sm
 
     def go_to_dashboard(self):

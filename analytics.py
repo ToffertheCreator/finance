@@ -1,23 +1,14 @@
-from kivy.core.window import Window
 from kivy.lang import Builder
-from kivy.utils import get_color_from_hex
 from kivy.metrics import dp
-from kivy.properties import NumericProperty, StringProperty
-from kivymd.app import MDApp
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.pickers import MDDatePicker
-from datetime import timedelta
+from kivy.properties import NumericProperty, StringProperty
 
 KV = '''
-#:import dp kivy.metrics.dp
-#:import get_color_from_hex kivy.utils.get_color_from_hex
-
 <AnalyticsScreen>:
-    name: "analytics"
-    md_bg_color: 1, 1, 1, 1
-
     MDBoxLayout:
         orientation: 'horizontal'
+        md_bg_color: 1, 1, 1, 1
 
         # Sidebar
         MDBoxLayout:
@@ -43,7 +34,7 @@ KV = '''
                 text: "Dashboard"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.go_to_dashboard()
+                on_release: root.go_to_dashboard()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -64,7 +55,7 @@ KV = '''
                 text: "Savings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.go_to_savings()
+                on_release: root.go_to_savings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -74,7 +65,7 @@ KV = '''
                 text: "Transactions"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.go_to_transactions()
+                on_release: root.go_to_transactions()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -84,7 +75,7 @@ KV = '''
                 text: "Settings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.go_to_settings()
+                on_release: root.go_to_settings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -93,16 +84,18 @@ KV = '''
             Widget:
                 size_hint_y: 1
 
-        # Main Content
+        # Main content
         MDBoxLayout:
             orientation: 'vertical'
-            padding: dp(20)
-            spacing: dp(32)
+            padding: dp(10)
+            spacing: dp(10)
             size_hint_x: 0.8
 
+            # Top half: Analytics Card
             MDBoxLayout:
                 orientation: 'vertical'
                 size_hint_y: 0.5
+                padding: 0
                 spacing: dp(10)
 
                 MDLabel:
@@ -117,30 +110,24 @@ KV = '''
                 MDCard:
                     orientation: 'vertical'
                     padding: dp(16)
-                    radius: [18,18, 18, 18]
+                    radius: [16]
                     md_bg_color: 1, 1, 1, 1
-                    elevation: 1
+                    elevation: 1  # Less shadow
+                    size_hint_y: 1
 
                     MDBoxLayout:
                         size_hint_y: None
                         height: dp(36)
-                        spacing: dp(10)
 
                         MDLabel:
                             text: "Trend"
                             halign: "left"
                             theme_text_color: "Primary"
 
-                        MDRaisedButton:
-                            id: date_picker_btn
-                            text: root.date_range_text
-                            on_release: root.show_date_picker()
-                            md_bg_color: 1, 1, 1, 1
-                            text_color: 0, 0, 0, 1
-                            radius: [20, 20, 20, 20]
-                            elevation: 1
-                            size_hint_x: None
-                            width: dp(140)
+                        MDDropDownItem:
+                            id: year_dropdown
+                            text: "2025"
+                            on_release: root.open_year_menu()
 
                     MDLabel:
                         text: "[Bar Chart Placeholder]"
@@ -151,67 +138,65 @@ KV = '''
                         text: "Legend: Income, Expenses, Expected"
                         halign: "center"
                         theme_text_color: "Hint"
-            
+
             # Bottom half: Stats and Pie Chart
             MDBoxLayout:
                 orientation: 'horizontal'
                 size_hint_y: 0.5
-                spacing: dp(32)
+                spacing: dp(10)
+                padding: 0
 
                 MDBoxLayout:
                     orientation: "vertical"
-                    spacing: dp(32)
+                    spacing: dp(10)
                     size_hint_x: 0.3
 
                     MDCard:
                         padding: dp(10)
-                        radius: [16, 16, 16, 16]
+                        radius: [16]
                         elevation: 1
+                        size_hint_y: 0.5
 
                         MDBoxLayout:
                             orientation: "vertical"
-                            spacing: dp(8)
-                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                             MDLabel:
                                 text: "Total Income"
                                 theme_text_color: "Secondary"
-                                halign: "center"
+
                             MDLabel:
-                                text: f"₱{root.total_income:.2f}"
+                                text: f"{root.total_income:.2f}"
                                 font_style: "H6"
                                 bold: True
-                                halign: "center"
                                 theme_text_color: "Custom"
                                 text_color: get_color_from_hex("#4CAF50")
 
                     MDCard:
                         padding: dp(10)
-                        radius: [16, 16, 16, 16]
+                        radius: [16]
                         elevation: 1
+                        size_hint_y: 0.5
 
                         MDBoxLayout:
                             orientation: "vertical"
-                            spacing: dp(8)
-                            pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
                             MDLabel:
                                 text: "Total Expenses"
                                 theme_text_color: "Secondary"
-                                halign: "center"
+
                             MDLabel:
-                                text: f"₱{root.total_expenses:.2f}"
+                                text: f"{root.total_expenses:.2f}"
                                 font_style: "H6"
                                 bold: True
-                                halign: "center"
                                 theme_text_color: "Custom"
                                 text_color: get_color_from_hex("#F44336")
 
                 MDCard:
                     orientation: "vertical"
                     padding: dp(16)
-                    radius: [16, 16, 16, 16]
+                    radius: [16]
                     elevation: 1
+                    md_bg_color: 1, 1, 1, 1
 
                     MDBoxLayout:
                         size_hint_y: 0.5
@@ -242,31 +227,56 @@ KV = '''
 class AnalyticsScreen(MDScreen):
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
-    date_range_text = StringProperty("Select Starting Date")
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.menu = None
 
-    def show_date_picker(self):
-        picker = MDDatePicker()
-        picker.bind(on_save=self.on_date)
-        picker.open()
+    # def on_kv_post(self, base_widget):
+    #     # Called after the widget tree is ready
+    #     menu_items = [
+    #         {
+    #             "viewclass": "OneLineListItem",
+    #             "text": str(year),
+    #             "on_release": lambda x=str(year): self.set_year(x),
+    #         }
+    #         for year in range(2025, 2009, -1)
+    #     ]
+    #     self.menu = MDDropdownMenu(
+    #         caller=self.ids.year_dropdown,
+    #         items=menu_items,
+    #         width_mult=3,
+    #     )
 
-    def on_date(self, instance, value, date_range):
-        end_date = value + timedelta(days=6)
-        self.date_range_text = f"{value} to {end_date}"
-        self.ids.date_picker_btn.text = self.date_range_text
+    def set_year(self, year):
+        self.ids.year_dropdown.text = year
+        self.menu.dismiss()
     
+    def open_year_menu(self):
+        if not self.menu:
+            menu_items = [
+                {
+                    "viewclass": "OneLineListItem",
+                    "text": str(year),
+                    "on_release": lambda x=str(year): self.set_year(x),
+                }
+                for year in range(2025, 2009, -1)
+            ]
+            self.menu = MDDropdownMenu(
+                caller=self.ids.year_dropdown,
+                items=menu_items,
+                width_mult=3,
+            )
+        self.menu.open()
+
+    # Navigation methods
     def go_to_dashboard(self):
-        self.manager.current = "dashboard"
+        self.manager.current = 'dashboard'
 
-class FinanceApp(MDApp):
-    def build(self):
-        self.theme_cls.primary_palette = "Orange"
-        self.theme_cls.accent_palette = "Orange"
-        self.theme_cls.theme_style = "Light"
-        Builder.load_string(KV)
-        return AnalyticsScreen(
-            total_income=56789.00,
-            total_expenses=23456.00
-        )
+    def go_to_savings(self):
+        pass
 
-if __name__ == "__main__":
-    FinanceApp().run()
+    def go_to_transactions(self):
+        pass
+
+    def go_to_settings(self):
+        pass

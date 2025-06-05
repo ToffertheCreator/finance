@@ -15,6 +15,7 @@ from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.responsivelayout import MDResponsiveLayout
 from kivymd.uix.toolbar import MDTopAppBar
 from kivy.lang import Builder
+from kivy.properties import NumericProperty, ListProperty
 from kivy.properties import StringProperty
 
 transactions_data = []
@@ -43,12 +44,12 @@ kv_string = """
             valign: "center" 
             size_hint_x: 1 
 
-    MDIconButton: 
-        icon: "close"
-        theme_text_color: "Custom"
-        text_color: 1, 1, 1, 1
-        pos_hint: {'center_y': .5, 'right': 1}
-        on_release: app.root.get_screen('dashboard').dismiss_current_dialog()
+        MDIconButton: 
+            icon: "close"
+            theme_text_color: "Custom"
+            text_color: 1, 1, 1, 1
+            pos_hint: {'center_y': .5, 'right': 1} 
+            on_release: app.root.get_screen('dashboard').dismiss_current_dialog()
 
     MDBoxLayout: 
         orientation: "vertical"
@@ -186,7 +187,6 @@ kv_string = """
                     height: dp(60)
                     padding: dp(20), dp(10)
 
-
                 MDBoxLayout:
                     id: dashboard_inner_scroll_content
                     orientation: 'vertical'
@@ -268,7 +268,7 @@ kv_string = """
                         orientation: 'vertical'
                         padding: dp(15)
                         spacing: dp(10)
-                        size_hint_y: 1   
+                        size_hint_y: 1
                         #adaptive_height: True
                         elevation: 1
                         radius: [15, 15, 15, 15]
@@ -280,10 +280,10 @@ kv_string = """
                             text: "All your transactions are recorded"
                             theme_text_color: "Hint"
                             adaptive_height: True
-                        
                         MDBoxLayout:
                             orientation: "vertical"
-                            size_hint_y: 1
+                            size_hint_y: None
+                            adaptive_height: True
                             MDBoxLayout:  # Header
                                 orientation: "horizontal"
                                 size_hint_y: None
@@ -329,15 +329,15 @@ kv_string = """
                                     theme_text_color: "Custom"
                                     text_color: 0, 0, 0, 1
                                     size_hint_x: 0.8
-
-                            ScrollView:
-                                size_hint_y: 1
-                                #height: dp(230)
-                                MDBoxLayout:
-                                    id: transactions_table_container
-                                    orientation: "vertical"
-                                    adaptive_height: True
-                                    size_hint_x: 1
+                        ScrollView:
+                            size_hint_y: 1
+                            #height: dp(250)  # or any height you want
+                            MDBoxLayout:
+                                id: transactions_table_container
+                                orientation: "vertical"
+                                adaptive_height: True
+                                size_hint_x: 1
+                                size_hint_y: None
 
             MDFloatingActionButton:
                 id: add_fab
@@ -420,14 +420,12 @@ class TransactionRow(MDBoxLayout):
             lbl.bind(texture_size=lbl.setter('size'))
             return lbl
 
-
         category_label = create_label(transaction['category'], size_hint_x=1.2)
         date_label = create_label(transaction['date'], size_hint_x=1)
         account_label = create_label(transaction['account'], size_hint_x=1)
         note_label = create_label(transaction['note'], size_hint_x=1.5)
-
-        amount_color = (0, 0.5, 0, 1) if transaction['amount'] > 0 else (1, 0, 0, 1)
-        amount_label = create_label(f"${abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
+        amount_color = (0, 0.5, 0, 1) if transaction['type'] == 'income' else (1, 0, 0, 1)
+        amount_label = create_label(f"{abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
 
         self.add_widget(category_label)
         self.add_widget(date_label)
@@ -481,7 +479,7 @@ class DashboardScreen(MDScreen):
     def on_nav_item_press(self):
         self.hide_add_options()
 
-    def _open_transaction_dialog(self, dialog_type):
+    def open_transaction_dialog(self, dialog_type):
         self.hide_add_options()
         is_income = dialog_type == "income"
         title = "Add Income" if is_income else "Add Expense"
@@ -491,8 +489,7 @@ class DashboardScreen(MDScreen):
         self.dialog = MDDialog(
             type="custom",
             content_cls=dialog_content_instance,
-            padding=0, 
-            radius=[15, 15, 15, 15], 
+            padding=0,
             md_bg_color = (0, 0, 0, 0),
             elevation = 0
         )
@@ -505,10 +502,10 @@ class DashboardScreen(MDScreen):
             self.dialog.dismiss()
 
     def open_add_income_dialog(self):
-        self._open_transaction_dialog("income")
+        self.open_transaction_dialog("income")
 
     def open_add_expense_dialog(self):
-        self._open_transaction_dialog("expense")
+        self.open_transaction_dialog("expense")
 
     def save_transaction_action(self, transaction_type, dialog_instance):
         data = dialog_instance.content_cls.get_data()
@@ -537,7 +534,6 @@ class DashboardScreen(MDScreen):
 
     def go_to_analytics(self):
         self.manager.current = 'analytics'
-        
 
 # class FinanceApp(MDApp):
 #     def build(self):
