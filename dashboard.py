@@ -537,6 +537,7 @@ class DashboardScreen(MDScreen):
 
     def go_to_analytics(self):
         self.manager.current = 'analytics'
+        
 
 # class FinanceApp(MDApp):
 #     def build(self):
