@@ -3,6 +3,9 @@ from kivy.metrics import dp
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.screen import MDScreen
 from kivy.properties import NumericProperty, StringProperty
+from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
+import matplotlib.pyplot as plt
+import numpy as np
 
 KV = '''
 <AnalyticsScreen>:
@@ -95,7 +98,7 @@ KV = '''
             # Top half: Analytics Card
             MDBoxLayout:
                 orientation: 'vertical'
-                size_hint_y: 0.5
+                size_hint_y: 0.7
                 padding: 0
                 spacing: dp(10)
 
@@ -130,15 +133,11 @@ KV = '''
                             text: "2025"
                             on_release: root.open_year_menu()
 
-                    MDLabel:
-                        text: "[Bar Chart Placeholder]"
-                        halign: "center"
-                        theme_text_color: "Hint"
-
-                    MDLabel:
-                        text: "Legend: Income, Expenses, Expected"
-                        halign: "center"
-                        theme_text_color: "Hint"
+                    BoxLayout:
+                        id: bar_chart_box
+                        size_hint_y: 1
+                        size_hint_x: 1
+                        adaptive_size: True
 
             # Bottom half: Stats and Pie Chart
             MDBoxLayout:
@@ -247,6 +246,43 @@ class AnalyticsScreen(MDScreen):
     #         items=menu_items,
     #         width_mult=3,
     #     )
+
+    def on_kv_post(self, base_widget):
+        self.ids.bar_chart_box.bind(size=self._update_chart_size)
+        self.plot_bar_chart()
+    
+    def _update_chart_size(self, instance, value):
+        self.plot_bar_chart()
+
+    def plot_bar_chart(self):
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        income = [6500, 4800, 9100, 6600, 1100, 3210, 4500, 5200, 6000, 7200, 8000, 9000]
+        expenses = [4300, 5700, 7600, 4500, 300, 230, 1200, 1500, 2000, 2500, 3000, 3500]
+
+        x = np.arange(len(months))
+        width = 0.35
+
+        chart_box = self.ids.bar_chart_box
+        chart_box.clear_widgets()
+
+        # Dynamically set figure size based on widget size (convert px to inches)
+        dpi = 120
+        width_in = max(chart_box.width / dpi, 4)
+        height_in = max(chart_box.height / dpi, 3)
+        fig, ax = plt.subplots(figsize=(width_in, height_in), dpi=dpi)
+
+        ax.bar(x - width/3, income, width, label='Income', color='#4CAF50')
+        ax.bar(x + width/3, expenses, width, label='Expenses', color='#F44336')
+
+        ax.set_xticks(x)
+        ax.set_xticklabels(months)
+        ax.set_ylabel('Amount')
+        ax.set_title('Income vs Expenses')
+        ax.legend(loc='lower left', bbox_to_anchor=(0.85, 1), fontsize=6.4, markerscale=0.8, handlelength=1.5, borderaxespad=0.5, frameon=True)
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.85, bottom=0.18) 
+
+        chart_box.add_widget(FigureCanvasKivyAgg(fig, size_hint=(1, 1)))
+        plt.close(fig)
 
     def set_year(self, year):
         self.ids.year_dropdown.text = year
