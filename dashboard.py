@@ -146,7 +146,7 @@ kv_string = """
                 text: "Savings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.on_nav_item_press()
+                on_release: app.go_to_savings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"

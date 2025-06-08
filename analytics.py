@@ -60,7 +60,7 @@ KV = '''
                 text: "Savings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.go_to_savings()
+                on_release: app.go_to_savings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -80,7 +80,6 @@ KV = '''
                 text: "Settings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.go_to_settings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -380,12 +379,3 @@ class AnalyticsScreen(MDScreen):
     # Navigation methods
     def go_to_dashboard(self):
         self.manager.current = 'dashboard'
-
-    def go_to_savings(self):
-        pass
-
-    def go_to_transactions(self):
-        pass
-
-    def go_to_settings(self):
-        pass

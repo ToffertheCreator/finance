@@ -83,7 +83,7 @@ kv = '''
                 text: "Savings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.root.ids.screen_manager.current = "savings"
+                on_release: app.go_to_savings()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -104,7 +104,6 @@ kv = '''
                 text: "Settings"
                 size_hint_y: None
                 height: dp(40)
-                on_release: app.root.ids.screen_manager.current = "settings"
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
