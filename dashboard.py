@@ -6,19 +6,25 @@ from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDFloatingActionButt
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.card import MDCard
-from kivy.core.window import Window
 from kivy.metrics import dp
 from kivy.uix.scrollview import ScrollView
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.datatables import MDDataTable
 from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.responsivelayout import MDResponsiveLayout
-from kivymd.uix.toolbar import MDTopAppBar
-from kivy.lang import Builder
-from kivy.properties import NumericProperty, ListProperty
-from kivy.properties import StringProperty
+from kivy.properties import NumericProperty, ListProperty, StringProperty
+from backend import TransactionManager, DatabaseManager, Transaction
 
-transactions_data = []
+
+def txn_tuple_to_dict(txn):
+    return {
+        "id": txn[0],
+        "date": txn[1],
+        "amount": txn[2],
+        "category": txn[3],
+        "account": txn[4],
+        "note": txn[5],
+        "type": txn[6]
+    }
 
 kv_string = """
 <DialogContent>:
@@ -445,10 +451,19 @@ class DashboardScreen(MDScreen):
 
     def create_summary_card(self, title_text, amount, amount_color):
         pass
+    
+    def on_pre_enter(self, *args):
+        self.update_dashboard()
+    
+    def get_transactions_from_db(self):
+        with DatabaseManager("finance.db") as db:
+            txns = TransactionManager.get_all_transactions(db)
+            return [txn_tuple_to_dict(txn) for txn in txns]
 
     def update_dashboard(self, *args):
-        total_income = sum(t['amount'] for t in transactions_data if t['type'] == 'income')
-        total_expense = sum(t['amount'] for t in transactions_data if t['type'] == 'expense')
+        transactions = self.get_transactions_from_db()
+        total_income = sum(t['amount'] for t in transactions if t['type'].lower() == 'income')
+        total_expense = sum(t['amount'] for t in transactions if t['type'].lower() == 'expense')
         remaining = total_income - total_expense
 
         self.ids.income_amount_label.text = f"{total_income:,.2f}"
@@ -456,11 +471,13 @@ class DashboardScreen(MDScreen):
         self.ids.remaining_amount_label.text = f"{remaining:,.2f}"
         self.ids.remaining_amount_label.text_color = get_color_from_hex("#4CAF50") if remaining >= 0 else get_color_from_hex("#F44336")
 
-        self.populate_transactions()
+        self.populate_transactions(transactions)
 
-    def populate_transactions(self):
+    def populate_transactions(self, transactions=None):
+        if transactions is None:
+            transactions = self.get_transactions_from_db()
         self.ids.transactions_table_container.clear_widgets()
-        for transaction in reversed(transactions_data):
+        for transaction in reversed(transactions):
             row = TransactionRow(transaction)
             self.ids.transactions_table_container.add_widget(row)
 
@@ -517,7 +534,6 @@ class DashboardScreen(MDScreen):
 
         try:
             amount_val = float(data['amount'])
-
             if not all([data['category'], data['date'], data['account']]) or amount_val <= 0:
                 dialog_instance.content_cls.ids.amount_field.error = True
                 dialog_instance.content_cls.ids.amount_field.helper_text = "Category, Date, Account must be filled. Amount must be > 0."
@@ -527,10 +543,18 @@ class DashboardScreen(MDScreen):
             dialog_instance.content_cls.ids.amount_field.helper_text = "Enter a valid number for amount."
             return
 
-        transactions_data.append({
-            "category": data['category'], "date": data['date'], "account": data['account'],
-            "note": data['note'], "amount": amount_val, "type": transaction_type
-        })
+        txn = Transaction(
+            data['date'],
+            amount_val,
+            data['category'],
+            data['account'],
+            data['note'],
+            transaction_type
+        )
+        with DatabaseManager("finance.db") as db:
+            TransactionManager.add_transaction(db, txn)
+        self.on_pre_enter()
+
         self.update_dashboard()
         dialog_instance.dismiss()
 

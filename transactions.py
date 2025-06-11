@@ -4,6 +4,19 @@ from kivy.lang import Builder
 from kivymd.app import MDApp
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.screen import MDScreen
+from backend import TransactionManager, DatabaseManager, Transaction
+
+
+def txn_tuple_to_dict(txn):
+    return {
+        "id": txn[0],
+        "date": txn[1],
+        "amount": txn[2],
+        "category": txn[3],
+        "account": txn[4],
+        "note": txn[5],
+        "type": txn[6]
+    }
 
 kv = '''
 <ClickableCard@MDCard>:
@@ -441,8 +454,8 @@ class TransactionRow(MDBoxLayout):
         account_label = create_label(transaction['account'], size_hint_x=1)
         note_label = create_label(transaction['note'], size_hint_x=1.5)
 
-        amount_color = (0, 0.5, 0, 1) if transaction['amount'] > 0 else (1, 0, 0, 1)
-        amount_label = create_label(f"${abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
+        amount_color = (0, 0.5, 0, 1) if transaction['type'].lower() == "income" else (1, 0, 0, 1)
+        amount_label = create_label(f"{abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
 
         self.add_widget(category_label)
         self.add_widget(date_label)
@@ -454,10 +467,20 @@ class TransactionsScreen(MDScreen):
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
     transactions = ListProperty([])
+    
+    def on_pre_enter(self, *args):
+        self.transactions = self.fetch_transactions_from_db()
+        self.calc_totals()
+        self.populate_all()
+
+    def fetch_transactions_from_db(self):
+        with DatabaseManager("finance.db") as db:
+            txns = TransactionManager.get_all_transactions(db)
+            return [txn_tuple_to_dict(txn) for txn in txns]
 
     def calc_totals(self):
-        self.total_income = sum(t["amount"] for t in self.transactions if t["amount"] > 0)
-        self.total_expenses = -sum(t["amount"] for t in self.transactions if t["amount"] < 0)
+        self.total_income = sum(t["amount"] for t in self.transactions if t["type"].lower() == "income")
+        self.total_expenses = sum(t["amount"] for t in self.transactions if t["type"].lower() == "expense")
 
     def populate_all(self):
         self.populate_main_history()
@@ -476,13 +499,13 @@ class TransactionsScreen(MDScreen):
     def populate_income_history(self):
         box = self.ids.income_scroll_box
         self.clear_layout(box)
-        for t in sorted([x for x in self.transactions if x["amount"] > 0], key=lambda x: x["date"], reverse=True):
+        for t in sorted([x for x in self.transactions if x["type"].lower() == "income"], key=lambda x: x["date"], reverse=True):
             box.add_widget(TransactionRow(t))
 
     def populate_expenses_history(self):
         box = self.ids.expenses_scroll_box
         self.clear_layout(box)
-        for t in sorted([x for x in self.transactions if x["amount"] < 0], key=lambda x: x["date"], reverse=True):
+        for t in sorted([x for x in self.transactions if x["type"].lower() == "expense"], key=lambda x: x["date"], reverse=True):
             box.add_widget(TransactionRow(t))
 
     def show_income(self):

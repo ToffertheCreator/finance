@@ -13,11 +13,15 @@ from datetime import datetime
 from kivy.properties import StringProperty, NumericProperty, ObjectProperty
 from kivy.core.window import Window
 from kivy.utils import get_color_from_hex
+from datetime import datetime
+from kivy.clock import Clock
+from backend import DatabaseManager, SavingsManager
+
 
 KV = '''
 ScreenManager:
     SavingsScreen:
-        name: "main"
+        name: "savings"
 
 <ChartCard@MDCard>:
     size_hint: None, None
@@ -27,7 +31,7 @@ ScreenManager:
     md_bg_color: 1, 1, 1, 1
     radius: [dp(12),]
     elevation: 1
-    on_release: app.root.get_screen('main').show_update_dialog(root)
+    on_release: app.root.get_screen('savings').show_update_dialog(root)
 
     MDLabel:
         id: percent
@@ -107,7 +111,7 @@ ScreenManager:
             theme_text_color: "Custom"
             text_color: 1, 1, 1, 1
             pos_hint: {'center_y': .5, 'right': 1}
-            on_release: app.root.get_screen('main').safe_dismiss()
+            on_release: app.root.get_screen('savings').safe_dismiss()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -149,14 +153,14 @@ ScreenManager:
             MDRaisedButton:
                 text: "SAVE"
                 md_bg_color: get_color_from_hex("#F89411")
-                on_release: app.root.get_screen('main').save_savings(root)
+                on_release: app.root.get_screen('savings').save_savings(root)
                 size_hint_x: None
                 width: dp(100)
                 height: dp(48)
 
             MDFlatButton:
                 text: "CANCEL"
-                on_release: app.root.get_screen('main').safe_dismiss()
+                on_release: app.root.get_screen('savings').safe_dismiss()
                 size_hint_x: None
                 width: dp(100)
                 height: dp(48)
@@ -189,7 +193,7 @@ ScreenManager:
             theme_text_color: "Custom"
             text_color: 1, 1, 1, 1
             pos_hint: {'center_y': .5, 'right': 1}
-            on_release: app.root.get_screen('main').safe_dismiss()
+            on_release: app.root.get_screen('savings').safe_dismiss()
 
     MDBoxLayout:
         orientation: "vertical"
@@ -224,7 +228,7 @@ ScreenManager:
             MDRaisedButton:
                 text: "UPDATE"
                 md_bg_color: get_color_from_hex("#F89411")
-                on_release: app.root.get_screen('main').update_card(root.root_card, root)
+                on_release: app.root.get_screen('savings').update_card(root.root_card, root)
                 size_hint_x: None
                 width: dp(100)
                 height: dp(48)
@@ -232,7 +236,7 @@ ScreenManager:
             MDFlatButton:
                 text: "DELETE"
                 text_color: 1, 0, 0, 1
-                on_release: app.root.get_screen('main').delete_card(root.root_card)
+                on_release: app.root.get_screen('savings').delete_card(root.root_card)
                 size_hint_x: None
                 width: dp(100)
                 height: dp(48)
@@ -442,23 +446,11 @@ class ChartCard(MDCard):
     target_value = NumericProperty(1)
     target_date = StringProperty("")
 
-    # def on_touch_up(self, touch):
-    #     if self.collide_point(*touch.pos):
-    #         # Only respond to left mouse button or touch (not scroll)
-    #         if hasattr(touch, "button") and touch.button != "left":
-    #             return super().on_touch_up(touch)
-    #         app = MDApp.get_running_app()
-    #         if hasattr(app.root.get_screen("main"), "show_update_dialog"):
-    #             app.root.get_screen("main").show_update_dialog(self)
-    #         return True
-    #     return super().on_touch_up(touch)
-
     def update_display(self):
         percent = int((self.current_value / self.target_value) * 100) if self.target_value else 0
         self.ids.percent.text = f"{percent}%"
         self.ids.label.text = self.label_text
         self.ids.figures.text = f"{int(self.current_value)}/{int(self.target_value)}"
-        from datetime import datetime
         try:
             target = datetime.strptime(self.target_date, "%Y-%m-%d")
             today = datetime.now()
@@ -485,11 +477,23 @@ class EditCardContent(MDBoxLayout):
 
 class SavingsScreen(MDScreen):
     dialog = None
+    _loading_event = None  # To prevent duplicates
 
     def on_pre_enter(self, *args):
         Window.bind(on_resize=self.update_chart_cols)
-        from kivy.clock import Clock
         Clock.schedule_once(self.update_chart_cols, 0)
+        # Delay loading savings data until screen is built
+        if not self._loading_event:
+            self._loading_event = Clock.schedule_interval(self._safe_load_existing_savings, 0.1)
+
+    def _safe_load_existing_savings(self, dt):
+        if "chart_area" in self.ids:
+            self._loading_event.cancel()
+            self._loading_event = None
+            self.load_existing_savings()
+            return True  # stop the interval
+        return False  # keep waiting
+
 
     def safe_dismiss(self):
         if self.dialog:
@@ -539,41 +543,23 @@ class SavingsScreen(MDScreen):
             print("Invalid date or number")
             return
 
+        # Save to database
+        with DatabaseManager("finance.db") as db:
+            SavingsManager.set_savings_goal(db, name, target, date)
+
+        # UI update
         chart_card = ChartCard()
         chart_card.label_text = name
-        chart_card.current_value = 0  # Start at 0
+        chart_card.current_value = 0
         chart_card.target_value = target
         chart_card.target_date = date
         chart_card.update_display()
 
-        chart_area = self.ids.chart_area
-        chart_area.add_widget(chart_card)
-
+        self.ids.chart_area.add_widget(chart_card)
         self.sort_chart_cards()
         self.update_chart_cols()
-
-        # Add to history (optional, you may want to only add when value > 0)
-        history_container = self.ids.history_container
-        row = MDBoxLayout(size_hint_y=None, height=dp(32), padding=(dp(15), 0, 0, 0))
-        row.add_widget(MDLabel(text=name, size_hint_x=0.35, halign="left"))
-        row.add_widget(MDLabel(text=datetime.now().strftime("%Y-%m-%d"), size_hint_x=0.38, halign="left"))
-        row.add_widget(MDLabel(
-            text="0",
-            size_hint_x=0.38,
-            halign="left",
-            theme_text_color="Custom",
-            text_color=(0, 1, 0, 1)
-        ))
-        row.add_widget(MDLabel(
-            text="created",
-            size_hint_x=None,
-            halign="left",
-            theme_text_color="Custom",
-            text_color=(0, 0, 1, 1)
-        ))
-        history_container.add_widget(row)
-
         self.safe_dismiss()
+
 
     def show_update_dialog(self, card):
         self.safe_dismiss()
@@ -597,52 +583,57 @@ class SavingsScreen(MDScreen):
             add_amount_str = content.ids.value_input.text.strip()
             if add_amount_str:
                 add_amount = float(add_amount_str)
-                card.current_value += add_amount  # Add instead of replace
+                card.current_value += add_amount
                 card.update_display()
-                # Log this addition in history
+
+                with DatabaseManager("finance.db") as db:
+                    SavingsManager.add_savings(db, card.label_text, add_amount)
+
+                # Add history log
                 history_container = self.ids.history_container
-                from datetime import datetime
                 row = MDBoxLayout(size_hint_y=None, height=dp(32), padding=(dp(15), 0, 0, 0))
                 row.add_widget(MDLabel(text=card.label_text, size_hint_x=0.35, halign="left"))
                 row.add_widget(MDLabel(text=datetime.now().strftime("%Y-%m-%d"), size_hint_x=0.38, halign="left"))
-                row.add_widget(MDLabel(
-                    text=str(add_amount),
-                    size_hint_x=0.38,
-                    halign="left",
-                    theme_text_color="Custom",
-                    text_color=(0, 1, 0, 1)
-                ))
-                row.add_widget(MDLabel(
-                    text="added",
-                    size_hint_x=None,
-                    halign="left",
-                    theme_text_color="Custom",
-                    text_color=(0, 0.5, 0, 1)
-                ))
+                row.add_widget(MDLabel(text=str(add_amount), size_hint_x=0.38, halign="left",
+                                    theme_text_color="Custom", text_color=(0, 1, 0, 1)))
+                row.add_widget(MDLabel(text="added", size_hint_x=None, halign="left",
+                                    theme_text_color="Custom", text_color=(0, 0.5, 0, 1)))
                 history_container.add_widget(row)
                 content.ids.value_input.text = ""
         except Exception as e:
             print("Error updating card:", e)
         self.safe_dismiss()
+
     
     def delete_card(self, card):
-        # Remove the card from the chart area
+        name = card.label_text
+
+        # 1. Remove from the database
+        try:
+            with DatabaseManager("finance.db") as db:
+                SavingsManager.delete_savings(db, name)
+        except Exception as e:
+            print("Failed to delete from database:", e)
+
+        # 2. Remove the chart card
         chart_area = self.ids.chart_area
         if card in chart_area.children:
             chart_area.remove_widget(card)
-        # Remove all history rows for this card
+
+        # 3. Remove all related history entries
         history_container = self.ids.history_container
-        name = card.label_text
         to_remove = []
         for row in history_container.children[:]:
             if len(row.children) >= 3:
-                # Name label is the first added, so it's the last in children
-                name_label = row.children[-1]
+                name_label = row.children[-1]  # First label added is the last in .children
                 if name_label.text == name:
                     to_remove.append(row)
         for row in to_remove:
             history_container.remove_widget(row)
+
+        # 4. Dismiss dialog
         self.safe_dismiss()
+
 
     def update_chart_cols(self, *args):
         if "chart_area" not in self.ids:
@@ -655,6 +646,46 @@ class SavingsScreen(MDScreen):
 
         rows = (len(chart_area.children) + cols - 1) // cols
         chart_area.height = rows * (dp(160) + dp(16))
+    
+    def load_existing_savings(self):
+        chart_area = self.ids.get("chart_area")
+        history_container = self.ids.get("history_container")
+        
+        if not chart_area or not history_container:
+            print("chart_area or history_container not found yet")
+            return
+
+        chart_area.clear_widgets()
+        history_container.clear_widgets()
+
+        with DatabaseManager("finance.db") as db:
+            # Step 1: Load all savings goals
+            savings_rows = db.run_query("SELECT name, current_saved, target_amount, target_date FROM savings", fetch=True)
+            if savings_rows:
+                for name, current_saved, target_amount, target_date in savings_rows:
+                    card = ChartCard()
+                    card.label_text = name
+                    card.current_value = current_saved
+                    card.target_value = target_amount
+                    card.target_date = target_date
+                    card.update_display()
+                    chart_area.add_widget(card)
+
+                # Step 2: Load savings history
+                history_rows = SavingsManager.get_savings_history(db)
+                for name, date, amount, action in history_rows:
+                    row = MDBoxLayout(size_hint_y=None, height=dp(32), padding=(dp(15), 0, 0, 0))
+                    row.add_widget(MDLabel(text=name, size_hint_x=0.35, halign="left"))
+                    row.add_widget(MDLabel(text=date, size_hint_x=0.38, halign="left"))
+                    row.add_widget(MDLabel(text=str(amount), size_hint_x=0.38, halign="left",
+                                        theme_text_color="Custom", text_color=(0, 1, 0, 1)))
+                    row.add_widget(MDLabel(text=action, size_hint_x=None, halign="left",
+                                        theme_text_color="Custom", text_color=(0, 0.5, 0, 1)))
+                    history_container.add_widget(row)
+
+        self.sort_chart_cards()
+        self.update_chart_cols()
+
 
 class FinanceTrackerApp(MDApp):
     def build(self):
