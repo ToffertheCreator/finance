@@ -4,7 +4,6 @@ import shutil
 from datetime import datetime
 from collections import defaultdict
 
-
 class Transaction:
     def __init__(self, date, amount, category, account, note, txn_type):
         self.__date = date

@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 from backend import DatabaseManager, AnalyticsManager
-from kivy.clock import Clock
 
 KV = '''
 <AnalyticsScreen>:
