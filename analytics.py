@@ -7,6 +7,8 @@ from kivy_garden.matplotlib.backend_kivyagg import FigureCanvasKivyAgg
 import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
+from backend import DatabaseManager, AnalyticsManager
+from kivy.clock import Clock
 
 KV = '''
 <AnalyticsScreen>:
@@ -214,38 +216,53 @@ KV = '''
 class AnalyticsScreen(MDScreen):
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.menu = None
-
-    # def on_kv_post(self, base_widget):
-    #     # Called after the widget tree is ready
-    #     menu_items = [
-    #         {
-    #             "viewclass": "OneLineListItem",
-    #             "text": str(year),
-    #             "on_release": lambda x=str(year): self.set_year(x),
-    #         }
-    #         for year in range(2025, 2009, -1)
-    #     ]
-    #     self.menu = MDDropdownMenu(
-    #         caller=self.ids.year_dropdown,
-    #         items=menu_items,
-    #         width_mult=3,
-    #     )
+    
+    def on_pre_enter(self):
+        self.build_year_dropdown()
+        self.update_analytics()
 
     def on_kv_post(self, base_widget):
         self.ids.bar_chart_box.bind(size=self._update_chart_size)
-        self.plot_bar_chart()
-        self.plot_pie_charts()
     
+    def update_analytics(self):
+        selected_year = self.ids.year_dropdown.text
+        try:
+            year = int(selected_year)
+        except ValueError:
+            year = None
+
+        with DatabaseManager("finance.db") as db:
+            analytics = AnalyticsManager(db)
+            self.total_income, self.total_expenses = analytics.get_totals(year)
+
+        self.plot_bar_chart(year)
+        self.plot_pie_charts(year)
+
     def _update_chart_size(self, instance, value):
         self.plot_bar_chart()
 
-    def plot_bar_chart(self):
-        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        income = [6500, 4800, 9100, 6600, 1100, 3210, 4500, 5200, 6000, 7200, 8000, 9000]
-        expenses = [4300, 5700, 7600, 4500, 300, 230, 1200, 1500, 2000, 2500, 3000, 3500]
+    def plot_bar_chart(self, year=None):
+        # Get monthly totals from database
+        with DatabaseManager("finance.db") as db:
+            analytics = AnalyticsManager(db)
+            monthly_data = analytics.get_monthly_totals(year)
+
+        # Labels
+        months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+        # Prepare income/expense arrays
+        income = []
+        expenses = []
+        for i in range(1, 13):
+            key = f"{year}-{i:02}" if year else f"2025-{i:02}"
+            month_totals = monthly_data.get(key, {"income": 0, "expense": 0})
+            income.append(month_totals["income"])
+            expenses.append(month_totals["expense"])
 
         x = np.arange(len(months))
         width = 0.35
@@ -253,86 +270,67 @@ class AnalyticsScreen(MDScreen):
         chart_box = self.ids.bar_chart_box
         chart_box.clear_widgets()
 
-        # Dynamically set figure size based on widget size (convert px to inches)
         dpi = 120
         width_in = max(chart_box.width / dpi, 4)
         height_in = max(chart_box.height / dpi, 3)
         fig, ax = plt.subplots(figsize=(width_in, height_in), dpi=dpi)
 
-        ax.bar(x - width/3, income, width, label='Income', color="#FB8C00")
-        ax.bar(x + width/3, expenses, width, label='Expenses', color="#000000")
+        # Use your original colors and layout
+        ax.bar(x - width/3, income, width, label='Income', color="#FB8C00")   # Orange
+        ax.bar(x + width/3, expenses, width, label='Expenses', color="#000000")  # Black
 
         ax.set_xticks(x)
         ax.set_xticklabels(months)
         ax.set_ylabel('Amount')
         ax.set_title('Income vs Expenses')
-        ax.legend(loc='lower left', bbox_to_anchor=(0.85, 1), fontsize=6.4, markerscale=0.8, handlelength=1.5, borderaxespad=0.5, frameon=True)
-        fig.subplots_adjust(left=0.12, right=0.95, top=0.85, bottom=0.18) 
+
+        ax.legend(
+            loc='lower left',
+            bbox_to_anchor=(0.85, 1),
+            fontsize=6.4,
+            markerscale=0.8,
+            handlelength=1.5,
+            borderaxespad=0.5,
+            frameon=True
+        )
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.85, bottom=0.18)
 
         chart_box.add_widget(FigureCanvasKivyAgg(fig, size_hint=(1, 1)))
         plt.close(fig)
     
-    def plot_pie_charts(self):
-        # Example/mock data, replace with your real data as needed
-        income_data = [
-            {'Salary': 4000, 'Freelance': 1000, 'Investments': 500},
-            {'Salary': 4200, 'Freelance': 1100, 'Investments': 600},
-            {'Salary': 4300, 'Freelance': 900, 'Investments': 700},
-            {'Salary': 4400, 'Freelance': 950, 'Investments': 750},
-            {'Salary': 4600, 'Freelance': 1050, 'Investments': 800},
-            {'Salary': 4700, 'Freelance': 1100, 'Investments': 900},
-        ]
-        expense_data = [
-            {'Rent': 1500, 'Groceries': 800, 'Entertainment': 300, 'Utilities': 200},
-            {'Rent': 1550, 'Groceries': 850, 'Entertainment': 350, 'Utilities': 250},
-            {'Rent': 1600, 'Groceries': 900, 'Entertainment': 400, 'Utilities': 220},
-            {'Rent': 1650, 'Groceries': 870, 'Entertainment': 370, 'Utilities': 230},
-            {'Rent': 1700, 'Groceries': 890, 'Entertainment': 360, 'Utilities': 240},
-            {'Rent': 1750, 'Groceries': 920, 'Entertainment': 380, 'Utilities': 260},
-            {'movies': 1750, 'bills': 920, 'gf': 380, 'cocaine': 260},
-            {'bail': 1232, 'meth': 1232, 'hookers': 3123, 'lawyer': 400},
-        ]
+    def plot_pie_charts(self, year=None):
+        with DatabaseManager("finance.db") as db:
+            analytics = AnalyticsManager(db)
+            category_totals = analytics.get_category_totals(year)
 
-        def aggregate(data_list):
-            result = defaultdict(int)
-            for month_data in data_list:
-                for category, amount in month_data.items():
-                    result[category] += amount
-            return result
-        
-        def group_small_categories(data_dict, min_pct=0.05):
-            total = sum(data_dict.values())
-            grouped = {}
-            other = 0
-            for k, v in data_dict.items():
-                if total == 0:
-                    continue
-                if v / total < min_pct:
-                    other += v
-                else:
+        income_data = {k: v['income'] for k, v in category_totals.items() if v['income'] > 0}
+        expense_data = {k: v['expense'] for k, v in category_totals.items() if v['expense'] > 0}
+
+        def group_small(data, min_pct=0.05):
+            total = sum(data.values())
+            grouped, other = {}, 0
+            for k, v in data.items():
+                if total == 0 or v / total >= min_pct:
                     grouped[k] = v
+                else:
+                    other += v
             if other > 0:
                 grouped['Other'] = other
             return grouped
 
-        income_totals = aggregate(income_data)
-        expense_totals = aggregate(expense_data)
-        income_totals = group_small_categories(income_totals, min_pct=0.07)   # 7% threshold
-        expense_totals = group_small_categories(expense_totals, min_pct=0.07)
+        income_data = group_small(income_data, 0.07)
+        expense_data = group_small(expense_data, 0.07)
 
-        # Clear previous widgets
         self.ids.income_pie_chart_box.clear_widgets()
         self.ids.expense_pie_chart_box.clear_widgets()
 
-        # Income Pie
         fig1, ax1 = plt.subplots(figsize=(3, 3))
-        self._plot_pie(ax1, income_totals, 'Income CAtegories Breakdown')
+        self._plot_pie(ax1, income_data, 'Income Breakdown')
         self.ids.income_pie_chart_box.add_widget(FigureCanvasKivyAgg(fig1))
         plt.close(fig1)
 
-        # Expense Pie
         fig2, ax2 = plt.subplots(figsize=(3, 3))
-        self._plot_pie(ax2, expense_totals, 'Expense Categories Breakdown')
+        self._plot_pie(ax2, expense_data, 'Expense Breakdown')
         self.ids.expense_pie_chart_box.add_widget(FigureCanvasKivyAgg(fig2))
         plt.close(fig2)
 
@@ -343,7 +341,7 @@ class AnalyticsScreen(MDScreen):
 
         def autopct(pct):
             val = int(round(pct * total / 100.0))
-            return f"{pct:.1f}%\n(${val})"
+            return f"{pct:.1f}%\n({val})"
 
         ax.pie(
             values,
@@ -358,23 +356,39 @@ class AnalyticsScreen(MDScreen):
     def set_year(self, year):
         self.ids.year_dropdown.text = year
         self.menu.dismiss()
+        self.update_analytics()
+    
+    def build_year_dropdown(self):
+        with DatabaseManager("finance.db") as db:
+            analytics = AnalyticsManager(db)
+            years = analytics.get_available_years()
+
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": year,
+                "on_release": lambda x=year: self.set_year(x),
+            }
+            for year in years
+        ]
+
+        if self.menu:
+            self.menu.dismiss()
+
+        self.menu = MDDropdownMenu(
+            caller=self.ids.year_dropdown,
+            items=menu_items,
+            width_mult=3,
+        )
+
+        # Set default year if current is invalid
+        if years and self.ids.year_dropdown.text not in years:
+            self.ids.year_dropdown.text = years[0]
+
     
     def open_year_menu(self):
-        if not self.menu:
-            menu_items = [
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": str(year),
-                    "on_release": lambda x=str(year): self.set_year(x),
-                }
-                for year in range(2025, 2009, -1)
-            ]
-            self.menu = MDDropdownMenu(
-                caller=self.ids.year_dropdown,
-                items=menu_items,
-                width_mult=3,
-            )
-        self.menu.open()
+        if self.menu:
+            self.menu.open()
 
     # Navigation methods
     def go_to_dashboard(self):

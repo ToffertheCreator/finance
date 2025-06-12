@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import sqlite3
 import shutil
-import matplotlib.pyplot as plt
+from datetime import datetime
 from collections import defaultdict
 
 
@@ -64,22 +64,24 @@ class DatabaseManager:
         self.__cursor.execute('''
             CREATE TABLE IF NOT EXISTS savings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                goal_amount TEXT NOT NULL,
+                name TEXT NOT NULL,
                 current_saved REAL NOT NULL,
-                duration TEXT
+                target_amount REAL NOT NULL,
+                target_date TEXT NOT NULL
             )
         ''')
 
         self.__cursor.execute('''
-            CREATE TABLE IF NOT EXISTS budgets (
+            CREATE TABLE IF NOT EXISTS savings_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                category TEXT NOT NULL,
+                name TEXT NOT NULL,
                 amount REAL NOT NULL,
-                duration TEXT
+                action TEXT NOT NULL,
+                date TEXT NOT NULL
             )
         ''')
-        self.__connection.commit()
 
+        self.__connection.commit()
 
 class TransactionManager:
     @staticmethod
@@ -89,8 +91,12 @@ class TransactionManager:
         db.run_query(query, transaction.get_data())
 
     @staticmethod
-    def get_all_transactions(db: DatabaseManager):
-        return db.run_query("SELECT * FROM transactions", fetch=True)
+    def get_all_transactions(db: DatabaseManager, year=None):
+        if year:
+            query = "SELECT * FROM transactions WHERE strftime('%Y', date) = ?"
+            return db.run_query(query, (str(year),), fetch=True)
+        else:
+            return db.run_query("SELECT * FROM transactions", fetch=True)
     
     @staticmethod
     def get_transaction_by_date(db: DatabaseManager, date: str):
@@ -99,6 +105,12 @@ class TransactionManager:
         if result:
             return result[0]
         return None
+    
+    @staticmethod
+    def get_transaction_by_type(db: DatabaseManager, txn_type):
+        query = "SELECT * FROM transactions WHERE type = ?"
+        result = db.fetch_query(query, (txn_type,))
+        return result
     
     @staticmethod
     def edit_transaction(db_manager: DatabaseManager, date: str, new_amount: float, new_category: str, new_mode: str, new_note: str, new_type: str):
@@ -128,44 +140,47 @@ class TransactionManager:
         else:
             print("No transaction found on that date.")
 
-
-# class BudgetManager:
-#     @staticmethod
-#     def set_budget(db: DatabaseManager, category, amount, duration):
-#         query = '''INSERT OR REPLACE INTO budgets (id, category, amount, duration)
-#                    VALUES ((SELECT id FROM budgets WHERE category = ?), ?, ?, ?)'''
-#         db.run_query(query, (category, amount, duration))
-
-#     @staticmethod
-#     def get_budget(db: DatabaseManager, category):
-#         return db.run_query("SELECT amount, duration FROM budgets WHERE category = ?", (category,), fetchone=True)
-
-#     @staticmethod
-#     def track_budget(db: DatabaseManager, category, spent_amount):
-#         budget = BudgetManager.get_budget(db, category)
-#         if budget:
-#             amount_limit = budget[0]
-#             remaining = amount_limit - spent_amount
-#             return (remaining >= 0, remaining)
-#         return (False, 0)
-
-class SavingsTracker:
+class SavingsManager:
     @staticmethod
-    def set_savings_goal(db: DatabaseManager, amount, duration):
-        db.run_query("INSERT INTO savings (goal_amount, current_saved, duration) VALUES (?, ?, ?)", (amount, 0, duration))
+    def set_savings_goal(db: DatabaseManager, name, target_amount, target_date):
+        db.run_query("INSERT INTO savings (name, target_amount, current_saved, target_date) VALUES (?, ?, ?, ?)", (name, target_amount, 0, target_date))
 
     @staticmethod
-    def add_savings(db: DatabaseManager, amount):
-        db.run_query("UPDATE savings SET current_saved = current_saved + ? WHERE id = 1", (amount,))
+    def add_savings(db: DatabaseManager, name, amount):
+        db.run_query("UPDATE savings SET current_saved = current_saved + ? WHERE name = ?", (amount, name))
+        db.run_query("INSERT INTO savings_history (name, amount, action, date) VALUES (?, ?, ?, ?)",
+                    (name, amount, "added", datetime.now().strftime("%Y-%m-%d")))
+
 
     @staticmethod
     def track_savings(db: DatabaseManager):
-        row = db.run_query("SELECT goal_amount, current_saved FROM savings WHERE id = 1", fetchone=True)
+        row = db.run_query("SELECT target_amount, current_saved FROM savings WHERE id = 1", fetchone=True)
         if row:
             return row[1], row[0] - row[1]
         return 0, 0
 
-class SummaryTracker(TransactionManager):
+    @staticmethod
+    def get_savings_name(db: DatabaseManager):
+        row = db.run_query("SELECT name FROM savings WHERE id = 1", fetchone=True)
+        return row[0] if row else None
+    
+    @staticmethod
+    def get_savings_target_date(db: DatabaseManager):
+        row = db.run_query("SELECT target_date FROM savings WHERE id = 1", fetchone=True)
+        return row[0] if row else None
+    
+    @staticmethod
+    def get_savings_history(db: DatabaseManager):
+        return db.run_query("SELECT name, date, amount, action FROM savings_history", fetch=True)
+
+    @staticmethod
+    def delete_savings(db: DatabaseManager, name):
+        db.run_query("DELETE FROM savings WHERE name = ?", (name,))
+        db.run_query("DELETE FROM savings_history WHERE name = ?", (name,))
+
+
+#for transactions page
+class SummaryManager(TransactionManager):
     def __init__(self, db: DatabaseManager):
         self.db = db
         
@@ -207,7 +222,7 @@ class ReportGenerator(ABC):
     def generate_report(self, db: DatabaseManager):
         pass
 
-class AnalyticsEngine(ReportGenerator, SummaryTracker, SavingsTracker, BackupManager):
+class AnalyticsManager(ReportGenerator, SummaryManager, SavingsManager):
     def __init__(self, db: DatabaseManager):
         self.db = db
     
@@ -216,227 +231,45 @@ class AnalyticsEngine(ReportGenerator, SummaryTracker, SavingsTracker, BackupMan
         savings = self.track_savings(self.db)
         return {"summary": summary, "savings": savings}
 
-    def analyze_trends(self):
-        transactions = self.get_all_transactions(self.db)  # Assuming it returns rows/tuples
-        trends = defaultdict(float)
+    def get_totals(self, year=None):
+        transactions = self.get_all_transactions(self.db, year)
+        total_income = sum(txn[2] for txn in transactions if str(txn[6]).lower() == "income")
+        total_expense = sum(abs(txn[2]) for txn in transactions if str(txn[6]).lower() == "expense")
+        return total_income, total_expense
 
+    def get_category_totals(self, year=None):
+        transactions = self.get_all_transactions(self.db, year)
+        category_totals = {}
         for txn in transactions:
-            date = txn[1]  # assuming index 1 is date
-            amount = txn[2]  # assuming index 2 is amount
-            txn_type = txn[6].lower()  # assuming index 6 is type
-
-            month = date[:7]  # 'YYYY-MM' format
+            category = txn[3]
+            amount = txn[2]
+            txn_type = str(txn[6]).lower()
+            if category not in category_totals:
+                category_totals[category] = {"income": 0, "expense": 0}
             if txn_type == "income":
-                trends[month] += amount
+                category_totals[category]["income"] += amount
             elif txn_type == "expense":
-                trends[month] -= amount  # subtract expense
+                category_totals[category]["expense"] += abs(amount)
+        return category_totals
+    
+    def get_monthly_totals(self, year=None):
+        transactions = self.get_all_transactions(self.db, year)
+        monthly_totals = defaultdict(lambda: {"income": 0, "expense": 0})
+        for txn in transactions:
+            date_str = txn[1]
+            amount = txn[2]
+            txn_type = str(txn[6]).lower()
+            month = datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y-%m")
+            if txn_type == "income":
+                monthly_totals[month]["income"] += amount
+            elif txn_type == "expense":
+                monthly_totals[month]["expense"] += abs(amount)
+        return dict(monthly_totals)
+    
+    def get_available_years(self):
+        result = self.db.run_query(
+            "SELECT DISTINCT strftime('%Y', date) AS year FROM transactions ORDER BY year DESC",
+            fetch=True
+        )
+        return [row[0] for row in result]
 
-        return dict(trends)
-
-    def visualize_data(self, chart_type, db: DatabaseManager):
-        with db:
-            transactions = TransactionManager.get_all_transactions(self.db)
-
-            if chart_type == "expense_vs_income":
-                income = sum(txn.amount for txn in transactions if txn.txn_type == "income")
-                expenses = sum(txn.amount for txn in transactions if txn.txn_type == "expense")
-                plt.bar(["Income", "Expenses"], [income, expenses])
-                plt.title("Income vs Expenses")
-
-            elif chart_type == "category_pie_chart":
-                category_totals = defaultdict(float)
-                for txn in transactions:
-                    if txn.txn_type == "expense":
-                        category_totals[txn.category] += txn.amount
-                if category_totals:
-                    plt.pie(category_totals.values(), labels=category_totals.keys(), autopct='%1.1f%%')
-                    plt.title("Expense Distribution by Category")
-                else:
-                    print("No expenses to visualize.")
-                    return
-
-            elif chart_type == "trend_analysis":
-                trends = self.analyze_trends()
-                months = sorted(trends.keys())
-                balances = [trends[m] for m in months]
-                plt.plot(months, balances, marker='o')
-                plt.title("Monthly Net Savings Trend")
-                plt.xticks(rotation=45)
-
-            elif chart_type == "top_expenses":
-                expenses = self.track_expenses()
-                sorted_exp = sorted(expenses, key=lambda x: x.amount, reverse=True)[:5]
-                names = [f"{e.category} - {e.date}" for e in sorted_exp]
-                amounts = [e.amount for e in sorted_exp]
-                if names:
-                    plt.barh(names, amounts)
-                    plt.title("Top 5 Expenses")
-                else:
-                    print("No expense data available.")
-                    return
-
-            else:
-                print("Invalid chart type.")
-                return
-
-            plt.tight_layout()
-            plt.show()
-
-class FinanceUI:
-    def __init__(self):
-        self.engine = AnalyticsEngine(DatabaseManager("finance.db"))
-
-    def display_menu(self):
-        print("Welcome to the Finance Manager!")
-        print("1. Add Transaction")
-        print("2. Edit Transaction")
-        print("3. Delete Transaction")
-        # print("4. Set Budget")
-        # print("5. Track Budget")
-        print("6. Set Savings Goal")
-        print("7. Add to Savings")
-        print("8. View Transaction History")
-        print("9. View Savings Progress")
-        print("10. Generate Report")
-        print("11. Visualize Data")
-        print("12. Create Backup")
-        print("13. Exit")
-
-    def handle_user_input(self):
-        while True:
-            self.display_menu()
-            choice = input("Enter your choice: ")
-
-            if choice == "1":
-                self.add_transaction()
-            elif choice == "2":
-                self.edit_transaction()
-            elif choice == "3":
-                self.delete_transaction()
-            # elif choice == "4":
-            #     self.set_budget()
-            # elif choice == "5":
-            #     self.track_budget()
-            elif choice == "6":
-                self.set_savings_goal()
-            elif choice == "7":
-                self.add_to_savings()
-            elif choice == "8":
-                self.view_transaction_history()
-            elif choice == "9":
-                self.view_savings_progress()
-            elif choice == "10":
-                self.generate_report()
-            elif choice == "11":
-                self.visualize_data()
-            elif choice == "12":
-                self.create_backup()
-            elif choice == "13":
-                print("Goodbye!")
-                break
-            else:
-                print("Invalid choice. Please try again.")
-
-    def add_transaction(self):
-        date = input("Enter date (YYYY-MM-DD): ")
-        amount = float(input("Enter amount: "))
-        category = input("Enter category: ")
-        account = input("Enter account: ")
-        note = input("Enter note: ")
-        txn_type = input("Enter type (Income/Expense): ")
-        txn = Transaction(date, amount, category, account, note, txn_type)
-
-        with DatabaseManager("finance.db") as db:
-            self.engine.add_transaction(db, txn)
-
-        print("Transaction added successfully!")
-
-    def edit_transaction(self):
-        date = input("Enter the date of the transaction to edit (YYYY-MM-DD): ")
-        txn = self.engine.get_transaction_by_date(self.engine.db, date)
-        if txn:
-            print(f"Found: Date: {txn[0]}, Amount: {txn[1]}, Category: {txn[2]}, Account: {txn[3]}, Note: {txn[4]}")
-            amount = float(input("Enter new amount: "))
-            category = input("Enter new category: ")
-            account = input("Enter new account: ")
-            note = input("Enter new note: ")
-            self.engine.edit_transaction(self.engine.db, date, amount, category, account, note)
-            print("Transaction updated successfully!")
-        else:
-            print("No transaction found for that date.")
-
-    def delete_transaction(self):
-        date = input("Enter the date of the transaction to delete (YYYY-MM-DD): ")
-        txn = self.engine.get_transaction_by_date(self.engine.db, date)
-        if txn:
-            print(f"Found: Date: {txn[0]}, Amount: {txn[1]}, Category: {txn[2]}, Account: {txn[3]}, Note: {txn[4]}")
-            confirm = input("Are you sure you want to delete this transaction? (yes/no): ").lower()
-            if confirm == "yes":
-                self.engine.delete_transaction(self.engine.db, date)
-                print("Transaction deleted.")
-            else:
-                print("Deletion canceled.")
-        else:
-            print("No transaction found.")
-
-    # def set_budget(self):
-    #     category = input("Enter category: ")
-    #     amount = float(input("Enter budget amount: "))
-    #     duration = input("Enter duration (e.g., Monthly): ")
-    #     self.engine.set_budget(self.engine.db, category, amount, duration)
-    #     print(f"Budget set for {category}: {amount} ({duration})")
-
-    # def track_budget(self):
-    #     category = input("Enter category to track: ")
-    #     spent = float(input("Enter spent amount: "))
-    #     ok, remaining = self.engine.track_budget(self.engine.db, category, spent)
-    #     if ok:
-    #         print(f"You are within budget for {category}. Remaining: {remaining}")
-    #     else:
-    #         print(f"Budget exceeded for {category}. Over by: {abs(remaining)}")
-
-    def set_savings_goal(self):
-        amount = float(input("Enter savings goal amount: "))
-        duration = input("Enter duration (e.g., Monthly): ")
-        self.engine.set_savings_goal(self.engine.db, amount, duration)
-        print("Savings goal set.")
-
-    def add_to_savings(self):
-        amount = float(input("Enter amount to add to savings: "))
-        self.engine.add_savings(self.engine.db, amount)
-        print(f"Added {amount} to savings.")
-
-    def view_transaction_history(self):
-        with DatabaseManager("finance.db") as db:
-            txns = self.engine.get_all_transactions(db)
-            print("Transaction History:")
-            for t in txns:
-                date, amount, category, account, note = t[1], t[2], t[3], t[4], t[5]
-                print(f"Date: {date}, Amount: {amount}, Category: {category}, Account: {account}, Note: {note}")
-
-    def view_savings_progress(self):
-        current, remaining = self.engine.track_savings(self.engine.db)
-        print(f"Current Savings: {current}")
-        print(f"Remaining to Goal: {remaining}" if remaining > 0 else "Savings goal achieved!")
-
-    def generate_report(self):
-        summary = self.engine.generate_summary(self.engine.db)
-        current, remaining = self.engine.track_savings(self.engine.db)
-        print("Report:")
-        print({
-            "summary": summary,
-            "savings_ok": (current, remaining)
-        })
-
-    def visualize_data(self):
-        chart = input("Chart type (expense_vs_income | category_pie_chart | trend_analysis | top_expenses): ")
-        self.engine.visualize_data(chart)
-
-    def create_backup(self):
-        path = input("Enter backup file path (default: backup_finance.db): ") or "backup_finance.db"
-        result = BackupManager().create_backup(path)
-        print(result)
-
-if __name__ == "__main__":
-    ui = FinanceUI()
-    ui.handle_user_input()
