@@ -13,6 +13,10 @@ from kivymd.uix.relativelayout import MDRelativeLayout
 from kivymd.uix.responsivelayout import MDResponsiveLayout
 from kivy.properties import NumericProperty, ListProperty, StringProperty
 from backend import TransactionManager, DatabaseManager, Transaction
+from kivy.properties import DictProperty
+from threading import Thread
+from kivy.clock import Clock
+
 
 
 def txn_tuple_to_dict(txn):
@@ -337,15 +341,19 @@ kv_string = """
                                     theme_text_color: "Custom"
                                     text_color: 0, 0, 0, 1
                                     size_hint_x: 0.8
-                        ScrollView:
+                        RecycleView:
+                            id: transactions_rv
+                            viewclass: 'TransactionRow'
+                            scroll_type: ['bars', 'content']
+                            bar_width: dp(10)
                             size_hint_y: 1
-                            #height: dp(250)  # or any height you want
-                            MDBoxLayout:
-                                id: transactions_table_container
-                                orientation: "vertical"
-                                adaptive_height: True
-                                size_hint_x: 1
+
+                            RecycleBoxLayout:
+                                default_size: None, dp(40)
+                                default_size_hint: 1, None
                                 size_hint_y: None
+                                height: self.minimum_height
+                                orientation: 'vertical'
 
             MDFloatingActionButton:
                 id: add_fab
@@ -406,12 +414,18 @@ class DialogContent(MDBoxLayout):
         self.ids.amount_field.helper_text = ""
 
 class TransactionRow(MDBoxLayout):
-    def __init__(self, transaction, **kwargs):
+    transaction = DictProperty({})
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = "horizontal"
         self.size_hint_y = None
         self.height = dp(40)
         self.padding = [dp(10), 0, dp(10), 0]
+        self.bind(transaction=self.update_row)
+    
+    def update_row(self, instance, value):
+        self.clear_widgets()
+        txn = self.transaction
 
         def create_label(text, color=(0, 0, 0, 1), size_hint_x=1):
             from kivymd.uix.label import MDLabel
@@ -428,33 +442,48 @@ class TransactionRow(MDBoxLayout):
             lbl.bind(texture_size=lbl.setter('size'))
             return lbl
 
-        category_label = create_label(transaction['category'], size_hint_x=1.2)
-        date_label = create_label(transaction['date'], size_hint_x=1)
-        account_label = create_label(transaction['account'], size_hint_x=1)
-        note_label = create_label(transaction['note'], size_hint_x=1.5)
-        amount_color = (0, 0.5, 0, 1) if transaction['type'] == 'income' else (1, 0, 0, 1)
-        amount_label = create_label(f"{abs(transaction['amount']):.2f}", color=amount_color, size_hint_x=0.8)
+        category_label = create_label(txn.get('category', ''), size_hint_x=1.2)
+        date_label = create_label(txn.get('date', ''), size_hint_x=1)
+        account_label = create_label(txn.get('account', ''), size_hint_x=1)
+        note_label = create_label(txn.get('note', ''), size_hint_x=1.5)
+        amount_color = (0, 0.5, 0, 1) if txn.get('type') == 'income' else (1, 0, 0, 1)
+        amount_label = create_label(f"{abs(txn.get('amount', 0)):.2f}", color=amount_color, size_hint_x=0.8)
 
         self.add_widget(category_label)
         self.add_widget(date_label)
         self.add_widget(account_label)
         self.add_widget(note_label)
         self.add_widget(amount_label)
-
 class DashboardScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = 'dashboard'
         self.dialog = None 
 
-        self.bind(on_kv_post_build=self.update_dashboard)
-
-    def create_summary_card(self, title_text, amount, amount_color):
-        pass
+        self.bind(on_kv_post_build=self.get_transactions_async)
     
     def on_pre_enter(self, *args):
-        self.update_dashboard()
+        self.get_transactions_async()
     
+    def get_transactions_async(self):
+        def fetch():
+            with DatabaseManager("finance.db") as db:
+                txns = TransactionManager.get_all_transactions(db)
+                mapped_txns = [txn_tuple_to_dict(txn) for txn in txns]
+                Clock.schedule_once(lambda dt: self.populate_transactions(mapped_txns))
+                Clock.schedule_once(lambda dt: self.update_summary_labels(mapped_txns))
+        Thread(target=fetch).start()
+    
+    def update_summary_labels(self, transactions):
+        total_income = sum(t['amount'] for t in transactions if t['type'].lower() == 'income')
+        total_expense = sum(t['amount'] for t in transactions if t['type'].lower() == 'expense')
+        remaining = total_income - total_expense
+
+        self.ids.income_amount_label.text = f"{total_income:,.2f}"
+        self.ids.expense_amount_label.text = f"{total_expense:,.2f}"
+        self.ids.remaining_amount_label.text = f"{remaining:,.2f}"
+        self.ids.remaining_amount_label.text_color = get_color_from_hex("#4CAF50") if remaining >= 0 else get_color_from_hex("#F44336")
+
     def get_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
             txns = TransactionManager.get_all_transactions(db)
@@ -476,10 +505,7 @@ class DashboardScreen(MDScreen):
     def populate_transactions(self, transactions=None):
         if transactions is None:
             transactions = self.get_transactions_from_db()
-        self.ids.transactions_table_container.clear_widgets()
-        for transaction in reversed(transactions):
-            row = TransactionRow(transaction)
-            self.ids.transactions_table_container.add_widget(row)
+        self.ids.transactions_rv.data = [{'transaction': txn} for txn in reversed(transactions)]
 
     def show_add_options(self):
         target_opacity = 1 if self.ids.add_income_btn.opacity == 0 else 0
@@ -555,20 +581,8 @@ class DashboardScreen(MDScreen):
             TransactionManager.add_transaction(db, txn)
         self.on_pre_enter()
 
-        self.update_dashboard()
+        self.get_transactions_async()
         dialog_instance.dismiss()
 
     def go_to_analytics(self):
         self.manager.current = 'analytics'
-
-# class FinanceApp(MDApp):
-#     def build(self):
-#         Window.size = (1000, 600)
-#         self.theme_cls.primary_palette = "Orange"
-#         self.theme_cls.accent_palette = "Orange"
-#         self.theme_cls.theme_style = "Light"
-#         Builder.load_string(kv_string) 
-#         return DashboardScreen()
-
-# if __name__ == '__main__':
-#     FinanceApp().run()

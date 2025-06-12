@@ -271,4 +271,3 @@ class AnalyticsManager(ReportGenerator, SummaryManager, SavingsManager):
             fetch=True
         )
         return [row[0] for row in result]
-
