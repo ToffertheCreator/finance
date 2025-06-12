@@ -467,11 +467,17 @@ class TransactionsScreen(MDScreen):
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
     transactions = ListProperty([])
-    
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.data_dirty = True
+        
     def on_pre_enter(self, *args):
-        self.transactions = self.fetch_transactions_from_db()
-        self.calc_totals()
-        self.populate_all()
+        if self.data_dirty:
+            self.transactions = self.fetch_transactions_from_db()
+            self.calc_totals()
+            self.populate_all()
+            self.data_dirty = False 
 
     def fetch_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
