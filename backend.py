@@ -80,6 +80,10 @@ class DatabaseManager:
             )
         ''')
 
+        self.__cursor.execute("CREATE INDEX IF NOT EXISTS idx_date ON transactions (date);")
+        self.__cursor.execute("CREATE INDEX IF NOT EXISTS idx_category ON transactions (category);")
+        self.__cursor.execute("CREATE INDEX IF NOT EXISTS idx_type ON transactions (type);")
+        
         self.__connection.commit()
 
 class TransactionManager:
@@ -92,14 +96,14 @@ class TransactionManager:
     @staticmethod
     def get_all_transactions(db: DatabaseManager, year=None):
         if year:
-            query = "SELECT * FROM transactions WHERE strftime('%Y', date) = ?"
+            query = "SELECT id, date, amount, category, account, note, type FROM transactions WHERE strftime('%Y', date) = ?"
             return db.run_query(query, (str(year),), fetch=True)
         else:
-            return db.run_query("SELECT * FROM transactions", fetch=True)
+            return db.run_query("SELECT id, date, amount, category, account, note, type FROM transactions", fetch=True)
     
     @staticmethod
     def get_transaction_by_date(db: DatabaseManager, date: str):
-        query = "SELECT * FROM transactions WHERE date = ?"
+        query = "SELECT id, date, amount, category, account, note, type FROM transactions WHERE date = ?"
         result = db.fetch_query(query, (date,))
         if result:
             return result[0]
@@ -107,13 +111,13 @@ class TransactionManager:
     
     @staticmethod
     def get_transaction_by_type(db: DatabaseManager, txn_type):
-        query = "SELECT * FROM transactions WHERE type = ?"
+        query = "SELECT id, date, amount, category, account, note, type FROM transactions WHERE type = ?"
         result = db.fetch_query(query, (txn_type,))
         return result
     
     @staticmethod
     def edit_transaction(db_manager: DatabaseManager, date: str, new_amount: float, new_category: str, new_mode: str, new_note: str, new_type: str):
-        query = "SELECT * FROM transactions WHERE date = ?"
+        query = "SELECT id FROM transactions WHERE date = ?"
         result = db_manager.run_query(query, (date,), fetchone=True)
         
         if result:
@@ -129,15 +133,10 @@ class TransactionManager:
 
     @staticmethod
     def delete_transaction(db_manager: DatabaseManager, date: str):
-        query = "SELECT * FROM transactions WHERE date = ?"
+        query = "SELECT id FROM transactions WHERE date = ?"
         result = db_manager.run_query(query, (date,), fetchone=True)
-        
         if result:
-            delete_query = "DELETE FROM transactions WHERE date = ?"
-            db_manager.run_query(delete_query, (date,))
-            print("Transaction deleted successfully.")
-        else:
-            print("No transaction found on that date.")
+            db_manager.run_query("DELETE FROM transactions WHERE date = ?", (date,))
 
 class SavingsManager:
     @staticmethod
