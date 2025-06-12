@@ -529,6 +529,9 @@ class TransactionsScreen(MDScreen):
             self.calc_totals()
             self.populate_all()
             self.data_dirty = False 
+    
+    def mark_dirty(self):
+        self.data_dirty = True
 
     def fetch_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
@@ -543,6 +546,7 @@ class TransactionsScreen(MDScreen):
         self.populate_main_history()
         self.populate_income_history()
         self.populate_expenses_history()
+        self.mark_dirty()
 
     def clear_layout(self, layout):
         layout.clear_widgets()
@@ -648,17 +652,3 @@ class TransactionsScreen(MDScreen):
 
     def go_to_main_page(self):
         self.ids.screen_manager.current = "main"
-
-# class FinanceApp(MDApp):
-#     def build(self):
-#         self.title = "Finance App with KV String"
-#         self.theme_cls.primary_palette = "Blue"
-#         self.theme_cls.theme_style = "Light"
-#         Builder.load_string(kv)
-#         self.screen = TransactionsScreen()
-#         self.screen.calc_totals()
-#         self.screen.populate_all()
-#         return self.screen
-    
-# if __name__ == "__main__":
-#     FinanceApp().run()
