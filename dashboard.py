@@ -1,22 +1,15 @@
 from kivy.utils import get_color_from_hex
-from kivymd.app import MDApp
+from kivy.app import App
 from kivymd.uix.screen import MDScreen
-from kivymd.uix.label import MDLabel
-from kivymd.uix.button import MDRaisedButton, MDFlatButton, MDFloatingActionButton, MDIconButton
-from kivymd.uix.textfield import MDTextField
 from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.card import MDCard
 from kivy.metrics import dp
-from kivy.uix.scrollview import ScrollView
 from kivymd.uix.dialog import MDDialog
-from kivymd.uix.relativelayout import MDRelativeLayout
-from kivymd.uix.responsivelayout import MDResponsiveLayout
-from kivy.properties import NumericProperty, ListProperty, StringProperty
+from kivy.properties import DictProperty, StringProperty
 from backend import TransactionManager, DatabaseManager, Transaction
-from kivy.properties import DictProperty
 from threading import Thread
 from kivy.clock import Clock
-
+from datetime import datetime
+from kivy.storage.jsonstore import JsonStore
 
 
 def txn_tuple_to_dict(txn):
@@ -74,9 +67,13 @@ kv_string = """
             padding: dp(20), dp(15)
         MDTextField:
             id: date_field
-            hint_text: "Date"
+            hint_text: "Enter date (YYYY-MM-DD)"
             mode: "rectangle"
-            padding: dp(20), dp(15)
+            size_hint_y: None
+            height: dp(48)
+            helper_text: ""
+            helper_text_mode: "on_error"
+            error: False
         MDTextField:
             id: account_field
             hint_text: "Account"
@@ -147,7 +144,7 @@ kv_string = """
                 text: "Analytics"
                 size_hint_y: None
                 height: dp(40)
-                on_release: root.go_to_analytics()  # Call the go_to_analytics method
+                on_release: root.go_to_analytics()
                 theme_text_color: "Custom"
                 text_color: 0.9, 0.9, 0.9, 1
                 halign: "left"
@@ -410,9 +407,12 @@ class DialogContent(MDBoxLayout):
         self.ids.account_field.text = ""
         self.ids.note_field.text = ""
         self.ids.amount_field.text = ""
+
         self.ids.amount_field.error = False
         self.ids.amount_field.helper_text = ""
 
+        self.ids.date_field.error = False
+        self.ids.date_field.helper_text = ""
 class TransactionRow(MDBoxLayout):
     transaction = DictProperty({})
     def __init__(self, **kwargs):
@@ -463,7 +463,22 @@ class DashboardScreen(MDScreen):
         self.bind(on_kv_post_build=self.get_transactions_async)
     
     def on_pre_enter(self, *args):
+        self.reset_ui_if_new_month()
         self.get_transactions_async()
+    
+    def reset_ui_if_new_month(self):
+        store = JsonStore("dashboard_ui_state.json")
+        current_month = datetime.now().strftime("%Y-%m")
+
+        if not store.exists("last_reset") or store.get("last_reset")["month"] != current_month:
+            # Clear only the UI
+            self.ids.income_amount_label.text = "0.00"
+            self.ids.expense_amount_label.text = "0.00"
+            self.ids.remaining_amount_label.text = "0.00"
+            self.ids.transactions_rv.data = []
+
+            # Update reset marker
+            store.put("last_reset", month=current_month)
     
     def get_transactions_async(self):
         def fetch():
@@ -554,19 +569,31 @@ class DashboardScreen(MDScreen):
 
     def save_transaction_action(self, transaction_type, dialog_instance):
         data = dialog_instance.content_cls.get_data()
+        content = dialog_instance.content_cls
 
-        dialog_instance.content_cls.ids.amount_field.error = False
-        dialog_instance.content_cls.ids.amount_field.helper_text = ""
+        # Reset errors
+        content.ids.amount_field.error = False
+        content.ids.amount_field.helper_text = ""
+        content.ids.date_field.error = False
+        content.ids.date_field.helper_text = ""
 
         try:
             amount_val = float(data['amount'])
             if not all([data['category'], data['date'], data['account']]) or amount_val <= 0:
-                dialog_instance.content_cls.ids.amount_field.error = True
-                dialog_instance.content_cls.ids.amount_field.helper_text = "Category, Date, Account must be filled. Amount must be > 0."
+                content.ids.amount_field.error = True
+                content.ids.amount_field.helper_text = "Category, Date, Account must be filled. Amount must be > 0."
                 return
         except ValueError:
-            dialog_instance.content_cls.ids.amount_field.error = True
-            dialog_instance.content_cls.ids.amount_field.helper_text = "Enter a valid number for amount."
+            content.ids.amount_field.error = True
+            content.ids.amount_field.helper_text = "Enter a valid number for amount."
+            return
+
+        # Validate date format
+        try:
+            datetime.strptime(data['date'], "%Y-%m-%d")
+        except ValueError:
+            content.ids.date_field.error = True
+            content.ids.date_field.helper_text = "Invalid format. Use YYYY-MM-DD."
             return
 
         txn = Transaction(
@@ -577,10 +604,11 @@ class DashboardScreen(MDScreen):
             data['note'],
             transaction_type
         )
+
         with DatabaseManager("finance.db") as db:
             TransactionManager.add_transaction(db, txn)
-        self.on_pre_enter()
 
+        App.get_running_app().root.get_screen('transactions').data_dirty = True
         self.get_transactions_async()
         dialog_instance.dismiss()
 
