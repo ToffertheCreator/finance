@@ -48,6 +48,46 @@ kv = '''
             font_style: "H6"
             text_color: (0, 0.5, 0, 1) if "Income" in root.title else (1, 0, 0, 1)
 
+<TransactionItem@MDBoxLayout>:
+    category: ""
+    date: ""
+    account: ""
+    note: ""
+    amount: ""
+    type: ""
+
+    size_hint_y: None
+    height: dp(40)
+    padding: dp(10), 0
+
+    MDLabel:
+        text: root.category
+        size_hint_x: 1.2
+        halign: "left"
+
+    MDLabel:
+        text: root.date
+        size_hint_x: 1
+        halign: "left"
+
+    MDLabel:
+        text: root.account
+        size_hint_x: 1
+        halign: "left"
+
+    MDLabel:
+        text: root.note
+        size_hint_x: 1.5
+        halign: "left"
+
+    MDLabel:
+        text: root.amount
+        size_hint_x: 0.8
+        halign: "left"
+        theme_text_color: "Custom"
+        text_color: (0, 0.5, 0, 1) if root.type == "income" else (1, 0, 0, 1)
+
+
 <TransactionsScreen@MDScreen>:
     name: 'transactions'
     MDBoxLayout:
@@ -230,14 +270,17 @@ kv = '''
                                     text_color: 0, 0, 0, 1
                                     size_hint_x: 0.8
 
-                            ScrollView:
-                                MDBoxLayout:
-                                    id: main_scroll_box
-                                    orientation: "vertical"
-                                    spacing: dp(10)
+                            RecycleView:
+                                id: main_rv
+                                viewclass: 'TransactionItem'
+                                bar_width: dp(5)
+
+                                RecycleBoxLayout:
+                                    default_size: None, dp(40)
+                                    default_size_hint: 1, None
                                     size_hint_y: None
-                                    padding: dp(10)
                                     height: self.minimum_height
+                                    orientation: 'vertical'
 
                 Screen:
                     name: "income"
@@ -255,7 +298,7 @@ kv = '''
 
                             ClickableCard:
                                 title: "Total Income"
-                                amount: f"${root.total_income:.2f}"
+                                amount: f"{root.total_income:.2f}"
                                 on_release: root.go_to_main_page()
 
                         MDCard:  # Enclose transaction history in a card
@@ -322,15 +365,17 @@ kv = '''
                                     text_color: 0, 0, 0, 1
                                     size_hint_x: 0.8
 
-                            ScrollView:
-                                MDBoxLayout:
-                                    id: income_scroll_box
-                                    orientation: "vertical"
-                                    spacing: dp(10)
-                                    size_hint_y: None
-                                    padding: dp(10)
-                                    height: self.minimum_height
+                            RecycleView:
+                                id: income_rv
+                                viewclass: 'TransactionItem'
+                                bar_width: dp(5)
 
+                                RecycleBoxLayout:
+                                    default_size: None, dp(40)
+                                    default_size_hint: 1, None
+                                    size_hint_y: None
+                                    height: self.minimum_height
+                                    orientation: 'vertical'
 
                 Screen:
                     name: "expenses"
@@ -348,7 +393,7 @@ kv = '''
 
                             ClickableCard:
                                 title: "Total Expenses"
-                                amount: f"${root.total_expenses:.2f}"
+                                amount: f"{root.total_expenses:.2f}"
                                 on_release: root.go_to_main_page()
 
                         MDCard:  # Enclose transaction history in a card
@@ -415,14 +460,17 @@ kv = '''
                                     text_color: 0, 0, 0, 1
                                     size_hint_x: 0.8
 
-                            ScrollView:
-                                MDBoxLayout:
-                                    id: expenses_scroll_box
-                                    orientation: "vertical"
-                                    spacing: dp(10)
+                            RecycleView:
+                                id: expenses_rv
+                                viewclass: 'TransactionItem'
+                                bar_width: dp(5)
+
+                                RecycleBoxLayout:
+                                    default_size: None, dp(40)
+                                    default_size_hint: 1, None
                                     size_hint_y: None
-                                    padding: dp(10)
                                     height: self.minimum_height
+                                    orientation: 'vertical'
 '''
 
 class TransactionRow(MDBoxLayout):
@@ -471,6 +519,9 @@ class TransactionsScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.data_dirty = True
+        self._transaction_map = {}
+        self._income_map = {}
+        self._expenses_map = {}
         
     def on_pre_enter(self, *args):
         if self.data_dirty:
@@ -497,23 +548,98 @@ class TransactionsScreen(MDScreen):
         layout.clear_widgets()
 
     def populate_main_history(self):
-        box = self.ids.main_scroll_box
-        self.clear_layout(box)
-        for t in sorted(self.transactions, key=lambda x: x["date"], reverse=True):
-            box.add_widget(TransactionRow(t))
+        rv = self.ids.main_rv
+        new_txns = {
+            t["id"]: {
+                "category": t["category"],
+                "date": t["date"],
+                "account": t["account"],
+                "note": t["note"],
+                "amount": f"{abs(t['amount']):.2f}",
+                "type": t["type"].lower()
+            }
+            for t in sorted(self.transactions, key=lambda x: x["date"], reverse=True)
+        }
 
+        # Only update what's changed
+        old_txns = self._transaction_map
+        updated_data = []
+        for txn_id, txn_data in new_txns.items():
+            if txn_id not in old_txns or old_txns[txn_id] != txn_data:
+                updated_data.append(txn_data)
+            else:
+                updated_data.append(old_txns[txn_id])  # Unchanged, keep as is
+
+        # Update RV only if something changed
+        if updated_data != rv.data:
+            rv.data = list(updated_data)
+
+        self._transaction_map = new_txns
+    
     def populate_income_history(self):
-        box = self.ids.income_scroll_box
-        self.clear_layout(box)
-        for t in sorted([x for x in self.transactions if x["type"].lower() == "income"], key=lambda x: x["date"], reverse=True):
-            box.add_widget(TransactionRow(t))
+        rv = self.ids.income_rv
 
+        income_txns = {
+            t["id"]: {
+                "category": t["category"],
+                "date": t["date"],
+                "account": t["account"],
+                "note": t["note"],
+                "amount": f"{abs(t['amount']):.2f}",
+                "type": t["type"].lower()
+            }
+            for t in sorted(
+                [x for x in self.transactions if x["type"].lower() == "income"],
+                key=lambda x: x["date"],
+                reverse=True
+            )
+        }
+
+        updated_data = []
+        old_data = self._income_map
+        for txn_id, txn_data in income_txns.items():
+            if txn_id not in old_data or old_data[txn_id] != txn_data:
+                updated_data.append(txn_data)
+            else:
+                updated_data.append(old_data[txn_id])  # reuse unchanged data
+
+        if updated_data != rv.data:
+            rv.data = list(updated_data)
+
+        self._income_map = income_txns
+    
     def populate_expenses_history(self):
-        box = self.ids.expenses_scroll_box
-        self.clear_layout(box)
-        for t in sorted([x for x in self.transactions if x["type"].lower() == "expense"], key=lambda x: x["date"], reverse=True):
-            box.add_widget(TransactionRow(t))
+        rv = self.ids.expenses_rv
 
+        expenses_txns = {
+            t["id"]: {
+                "category": t["category"],
+                "date": t["date"],
+                "account": t["account"],
+                "note": t["note"],
+                "amount": f"{abs(t['amount']):.2f}",
+                "type": t["type"].lower()
+            }
+            for t in sorted(
+                [x for x in self.transactions if x["type"].lower() == "expense"],
+                key=lambda x: x["date"],
+                reverse=True
+            )
+        }
+
+        updated_data = []
+        old_data = self._expenses_map
+        for txn_id, txn_data in expenses_txns.items():
+            if txn_id not in old_data or old_data[txn_id] != txn_data:
+                updated_data.append(txn_data)
+            else:
+                updated_data.append(old_data[txn_id])
+
+        if updated_data != rv.data:
+            rv.data = list(updated_data)
+
+        self._expenses_map = expenses_txns
+    
     def show_income(self):
         self.ids.screen_manager.current = "income"
 
