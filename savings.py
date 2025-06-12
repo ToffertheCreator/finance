@@ -133,6 +133,9 @@ ScreenManager:
             mode: "rectangle"
             size_hint_y: None
             height: dp(48)
+            helper_text: ""
+            helper_text_mode: "on_error"
+            error: False
 
         MDTextField:
             id: target_input
@@ -532,15 +535,27 @@ class SavingsScreen(MDScreen):
         date = content.ids.date_input.text.strip()
         target = content.ids.target_input.text.strip()
 
+        # Reset date input error state
+        content.ids.date_input.error = False
+        content.ids.date_input.helper_text = ""
+
         if not name or not date or not target:
             print("Please fill all fields")
             return
 
+        # Validate date
         try:
             datetime.strptime(date, "%Y-%m-%d")
+        except ValueError:
+            content.ids.date_input.error = True
+            content.ids.date_input.helper_text = "Invalid date format. Use YYYY-MM-DD."
+            return
+
+        # Validate target amount
+        try:
             target = float(target)
         except ValueError:
-            print("Invalid date or number")
+            print("Invalid target amount")
             return
 
         # Save to database
@@ -559,7 +574,6 @@ class SavingsScreen(MDScreen):
         self.sort_chart_cards()
         self.update_chart_cols()
         self.safe_dismiss()
-
 
     def show_update_dialog(self, card):
         self.safe_dismiss()
@@ -685,13 +699,3 @@ class SavingsScreen(MDScreen):
 
         self.sort_chart_cards()
         self.update_chart_cols()
-
-
-class FinanceTrackerApp(MDApp):
-    def build(self):
-        self.theme_cls.theme_style = "Light"
-        self.theme_cls.primary_palette = "DeepPurple"
-        return Builder.load_string(KV)
-
-if __name__ == '__main__':
-    FinanceTrackerApp().run()
