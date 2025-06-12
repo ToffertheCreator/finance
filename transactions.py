@@ -22,7 +22,7 @@ kv = '''
 <ClickableCard@MDCard>:
     title: ""
     amount: ""
-    elevation: 2
+    elevation: 1
     size_hint: None, None
     size: dp(250), dp(120)
     md_bg_color: 1, 1, 1, 1
