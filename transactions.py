@@ -1,10 +1,9 @@
 from kivy.metrics import dp
-from kivy.properties import NumericProperty, ListProperty
-from kivy.lang import Builder
-from kivymd.app import MDApp
+from kivy.properties import NumericProperty, ListProperty, StringProperty
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.screen import MDScreen
-from backend import TransactionManager, DatabaseManager, Transaction
+from kivymd.uix.menu import MDDropdownMenu
+from backend import TransactionManager, DatabaseManager, AnalyticsManager
 
 
 def txn_tuple_to_dict(txn):
@@ -214,10 +213,19 @@ kv = '''
                             elevation: 1
                             radius: [15, 15, 15, 15]
 
-                            MDLabel:
-                                text: "All Transactions"
-                                font_style: "H6"
-                                adaptive_height: True
+                            MDBoxLayout:
+                                size_hint_y: None
+                                height: dp(30)
+
+                                MDLabel:
+                                    text: "All Transactions"
+                                    font_style: "H6"
+                                    adaptive_height: True
+                                
+                                MDDropDownItem:
+                                    id: year_dropdown_main
+                                    text: "Select Year"
+                                    on_release: root.open_year_menu("main")
 
                             MDLabel:
                                 text: "All your transactions are recorded"
@@ -309,11 +317,20 @@ kv = '''
                             elevation: 1
                             radius: [15, 15, 15, 15]
 
-                            MDLabel:
-                                text: "All Transactions"
-                                font_style: "H6"
-                                adaptive_height: True
+                            MDBoxLayout:
+                                size_hint_y: None
+                                height: dp(30)
 
+                                MDLabel:
+                                    text: "All Transactions"
+                                    font_style: "H6"
+                                    adaptive_height: True
+                                
+                                MDDropDownItem:
+                                    id: year_dropdown_income
+                                    text: "Select Year"
+                                    on_release: root.open_year_menu("income")
+                            
                             MDLabel:
                                 text: "All your transactions are recorded"
                                 theme_text_color: "Hint"
@@ -404,10 +421,19 @@ kv = '''
                             elevation: 1
                             radius: [15, 15, 15, 15]
 
-                            MDLabel:
-                                text: "All Transactions"
-                                font_style: "H6"
-                                adaptive_height: True
+                            MDBoxLayout:
+                                size_hint_y: None
+                                height: dp(30)
+
+                                MDLabel:
+                                    text: "All Transactions"
+                                    font_style: "H6"
+                                    adaptive_height: True
+                                
+                                MDDropDownItem:
+                                    id: year_dropdown_expense
+                                    text: "Select Year"
+                                    on_release: root.open_year_menu("expense")
 
                             MDLabel:
                                 text: "All your transactions are recorded"
@@ -514,6 +540,7 @@ class TransactionRow(MDBoxLayout):
 class TransactionsScreen(MDScreen):
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
+    selected_year = StringProperty("")
     transactions = ListProperty([])
 
     def __init__(self, **kwargs):
@@ -524,18 +551,70 @@ class TransactionsScreen(MDScreen):
         self._expenses_map = {}
         
     def on_pre_enter(self, *args):
+        self.build_year_dropdown("main")
+        self.build_year_dropdown("income")
+        self.build_year_dropdown("expense")
         if self.data_dirty:
-            self.transactions = self.fetch_transactions_from_db()
-            self.calc_totals()
-            self.populate_all()
-            self.data_dirty = False 
-    
+            self.refresh_view()
+            self.data_dirty = False
+
+    def build_year_dropdown(self, screen_name="main"):
+        with DatabaseManager("finance.db") as db:
+            years = AnalyticsManager(db).get_available_years()
+
+        years = [str(y) for y in years if y]
+
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": year,
+                "on_release": lambda x=year, s=screen_name: self.set_year(x, s),
+            }
+            for year in years
+        ]
+
+        if not hasattr(self, "menus"):
+            self.menus = {}
+
+        dropdown_id = f"year_dropdown_{screen_name}"
+        caller = self.ids.get(dropdown_id)
+
+        if screen_name in self.menus:
+            self.menus[screen_name].dismiss()
+
+        self.menus[screen_name] = MDDropdownMenu(
+            caller=caller,
+            items=menu_items,
+            width_mult=3
+        )
+
+        if caller and years and caller.text not in years:
+            caller.text = years[0]
+            self.selected_year = years[0]
+
+    def open_year_menu(self, screen_name="main"):
+        if self.menus and screen_name in self.menus:
+            self.menus[screen_name].open()
+
+    def set_year(self, year, screen_name="main"):
+        self.selected_year = year
+        self.ids.get(f"year_dropdown_{screen_name}").text = year
+        self.menus[screen_name].dismiss()
+        self.refresh_view()
+
+    def refresh_view(self):
+        self.transactions = self.fetch_transactions_from_db()
+        self.calc_totals()
+        self.populate_all()
+
     def mark_dirty(self):
         self.data_dirty = True
 
     def fetch_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
             txns = TransactionManager.get_all_transactions(db)
+            if self.selected_year:
+                txns = [txn for txn in txns if txn[1].startswith(self.selected_year)]
             return [txn_tuple_to_dict(txn) for txn in txns]
 
     def calc_totals(self):
