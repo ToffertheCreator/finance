@@ -175,53 +175,17 @@ class SavingsManager:
         db.run_query("DELETE FROM savings WHERE name = ?", (name,))
         db.run_query("DELETE FROM savings_history WHERE name = ?", (name,))
 
-#for transactions page
-class SummaryManager(TransactionManager):
-    @staticmethod
-    def generate_summary(db: DatabaseManager):
-        transactions = SummaryManager.get_all_transactions(db)
-        summary = {"income": 0, "expense": 0, "category_breakdown": {}}
-        for _, _, amount, category, *_ in transactions:
-            if category not in summary["category_breakdown"]:
-                summary["category_breakdown"][category] = {"income": 0, "expense": 0}
-            if amount >= 0:
-                summary["income"] += amount
-                summary["category_breakdown"][category]["income"] += amount
-            else:
-                summary["expense"] += abs(amount)
-                summary["category_breakdown"][category]["expense"] += abs(amount)
-        summary["remaining_budget"] = summary["income"] - summary["expense"]
-        return summary
-
-    @staticmethod
-    def track_expenses(db: DatabaseManager):
-        transactions = SummaryManager.get_all_transactions(db)
-        expenses = [txn for txn in transactions if txn[6].lower() == "expense"]
-        return expenses
-
-    @staticmethod
-    def track_income(db: DatabaseManager):
-        transactions = SummaryManager.get_all_transactions(db)
-        income = [txn for txn in transactions if txn[6].lower() == "income"]
-        return income
-
-class AnalyticsManager(SummaryManager, SavingsManager):
-    @staticmethod
-    def generate_report(db: DatabaseManager):
-        summary = SummaryManager.generate_summary(db)
-        savings = SavingsManager.track_savings(db)
-        return {"summary": summary, "savings": savings}
-
+class AnalyticsManager(TransactionManager, SavingsManager):
     @staticmethod
     def get_totals(db: DatabaseManager, year=None):
-        transactions = SummaryManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all_transactions(db, year)
         total_income = sum(txn[2] for txn in transactions if str(txn[6]).lower() == "income")
         total_expense = sum(abs(txn[2]) for txn in transactions if str(txn[6]).lower() == "expense")
         return total_income, total_expense
 
     @staticmethod
     def get_category_totals(db: DatabaseManager, year=None):
-        transactions = SummaryManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all_transactions(db, year)
         category_totals = {}
         for txn in transactions:
             category = txn[3]
@@ -237,7 +201,7 @@ class AnalyticsManager(SummaryManager, SavingsManager):
 
     @staticmethod
     def get_monthly_totals(db: DatabaseManager, year=None):
-        transactions = SummaryManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all_transactions(db, year)
         monthly_totals = defaultdict(lambda: {"income": 0, "expense": 0})
         for txn in transactions:
             date_str = txn[1]
