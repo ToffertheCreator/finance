@@ -6,17 +6,13 @@ from transactions import TransactionsScreen, kv as transactions_kv
 from savings import SavingsScreen, KV as savings_kv
 from kivy.lang import Builder
 
-class ScreenManagement(ScreenManager):
-    def __init__(self, **kwargs):
-        super(ScreenManagement, self).__init__(**kwargs)
-
 class MainApp(MDApp):  # Inherit from MDApp
     def build(self):
         Builder.load_string(kv_string)  # Load dashboard KV
         Builder.load_string(KV)  # Load analytics KV
         Builder.load_string(transactions_kv)
         Builder.load_string(savings_kv)
-        sm = ScreenManagement()
+        sm = ScreenManager()
         sm.add_widget(DashboardScreen(name='dashboard'))
         sm.add_widget(AnalyticsScreen(name='analytics'))
         sm.add_widget(TransactionsScreen(name='transactions'))

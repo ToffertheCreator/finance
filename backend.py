@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 import sqlite3
-import shutil
 from datetime import datetime
 from collections import defaultdict
 
@@ -176,7 +175,6 @@ class SavingsManager:
         db.run_query("DELETE FROM savings WHERE name = ?", (name,))
         db.run_query("DELETE FROM savings_history WHERE name = ?", (name,))
 
-
 #for transactions page
 class SummaryManager(TransactionManager):
     def __init__(self, db: DatabaseManager):
@@ -207,20 +205,7 @@ class SummaryManager(TransactionManager):
         income = [txn for txn in transactions if txn[6].lower() == "income"]
         return income
 
-class BackupManager:
-    def __init__(self, db_path='finance.db'):
-        self.db_path = db_path
-
-    def create_backup(self, backup_path='backup_finance.db'):
-        shutil.copyfile(self.db_path, backup_path)
-        return f"Backup saved to {backup_path}"
-
-class ReportGenerator(ABC):
-    @abstractmethod
-    def generate_report(self, db: DatabaseManager):
-        pass
-
-class AnalyticsManager(ReportGenerator, SummaryManager, SavingsManager):
+class AnalyticsManager(SummaryManager, SavingsManager):
     def __init__(self, db: DatabaseManager):
         self.db = db
     
