@@ -560,7 +560,7 @@ class TransactionsScreen(MDScreen):
 
     def build_year_dropdown(self, screen_name="main"):
         with DatabaseManager("finance.db") as db:
-            years = AnalyticsManager(db).get_available_years()
+            years = AnalyticsManager.get_available_years(db)
 
         years = [str(y) for y in years if y]
 

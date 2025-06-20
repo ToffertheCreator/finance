@@ -237,14 +237,12 @@ class AnalyticsScreen(MDScreen):
 
         def worker():
             with DatabaseManager("finance.db") as db:
-                analytics = AnalyticsManager(db)
-
                 # Get totals
-                total_income, total_expenses = analytics.get_totals(self.year)
+                total_income, total_expenses = AnalyticsManager.get_totals(db, self.year)
 
                 # Get chart data
-                category_totals = analytics.get_category_totals(self.year)
-                monthly_totals = analytics.get_monthly_totals(self.year)
+                category_totals = AnalyticsManager.get_category_totals(db, self.year)
+                monthly_totals = AnalyticsManager.get_monthly_totals(db, self.year)
 
             # Process chart data
             income_data = {k: v['income'] for k, v in category_totals.items() if v['income'] > 0}
@@ -344,8 +342,7 @@ class AnalyticsScreen(MDScreen):
 
     def build_year_dropdown(self):
         with DatabaseManager("finance.db") as db:
-            analytics = AnalyticsManager(db)
-            years = analytics.get_available_years()
+            years = AnalyticsManager.get_available_years(db)
 
         years = [str(y) for y in years if y is not None and str(y).strip()]
 
