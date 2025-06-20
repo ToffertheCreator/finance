@@ -483,7 +483,7 @@ class DashboardScreen(MDScreen):
     def get_transactions_async(self):
         def fetch():
             with DatabaseManager("finance.db") as db:
-                txns = TransactionManager.get_all_transactions(db)
+                txns = TransactionManager.get_all(db)
                 mapped_txns = [txn_tuple_to_dict(txn) for txn in txns]
                 Clock.schedule_once(lambda dt: self.populate_transactions(mapped_txns))
                 Clock.schedule_once(lambda dt: self.update_summary_labels(mapped_txns))
@@ -501,7 +501,7 @@ class DashboardScreen(MDScreen):
 
     def get_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
-            txns = TransactionManager.get_all_transactions(db)
+            txns = TransactionManager.get_all(db)
             return [txn_tuple_to_dict(txn) for txn in txns]
 
     def update_dashboard(self, *args):
@@ -606,7 +606,7 @@ class DashboardScreen(MDScreen):
         )
 
         with DatabaseManager("finance.db") as db:
-            TransactionManager.add_transaction(db, txn)
+            TransactionManager.add(db, txn)
 
         App.get_running_app().root.get_screen('transactions').data_dirty = True
         self.get_transactions_async()

@@ -612,7 +612,7 @@ class TransactionsScreen(MDScreen):
 
     def fetch_transactions_from_db(self):
         with DatabaseManager("finance.db") as db:
-            txns = TransactionManager.get_all_transactions(db)
+            txns = TransactionManager.get_all(db)
             if self.selected_year:
                 txns = [txn for txn in txns if txn[1].startswith(self.selected_year)]
             return [txn_tuple_to_dict(txn) for txn in txns]

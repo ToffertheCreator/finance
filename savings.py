@@ -601,7 +601,7 @@ class SavingsScreen(MDScreen):
                 card.update_display()
 
                 with DatabaseManager("finance.db") as db:
-                    SavingsManager.add_savings(db, card.label_text, add_amount)
+                    SavingsManager.add(db, card.label_text, add_amount)
 
                 # Add history log
                 history_container = self.ids.history_container
@@ -625,7 +625,7 @@ class SavingsScreen(MDScreen):
         # 1. Remove from the database
         try:
             with DatabaseManager("finance.db") as db:
-                SavingsManager.delete_savings(db, name)
+                SavingsManager.delete(db, name)
         except Exception as e:
             print("Failed to delete from database:", e)
 

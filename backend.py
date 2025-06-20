@@ -85,20 +85,41 @@ class DatabaseManager:
         
         self.__connection.commit()
 
-class TransactionManager:
+class BaseManager(ABC):
     @staticmethod
-    def add_transaction(db: DatabaseManager, transaction: Transaction):
+    @abstractmethod
+    def add(db, *args, **kwargs):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def delete(db, *args, **kwargs):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_all(db, *args, **kwargs):
+        pass
+
+class TransactionManager(BaseManager):
+    @staticmethod
+    def add(db: DatabaseManager, transaction: Transaction):
         query = '''INSERT INTO transactions (date, amount, category, account, note, type)
                    VALUES (?, ?, ?, ?, ?, ?)'''
         db.run_query(query, transaction.get_data())
 
     @staticmethod
-    def get_all_transactions(db: DatabaseManager, year=None):
+    def get_all(db: DatabaseManager, year=None):
         if year:
             query = "SELECT id, date, amount, category, account, note, type FROM transactions WHERE strftime('%Y', date) = ?"
             return db.run_query(query, (str(year),), fetch=True)
         else:
             return db.run_query("SELECT id, date, amount, category, account, note, type FROM transactions", fetch=True)
+    
+    @staticmethod
+    def delete(db: DatabaseManager, date: str):
+        query = "DELETE FROM transactions WHERE date = ?"
+        db.run_query(query, (date,))
     
     @staticmethod
     def get_transaction_by_date(db: DatabaseManager, date: str):
@@ -130,24 +151,25 @@ class TransactionManager:
         else:
             print("No transaction found on that date.")
 
+class SavingsManager(BaseManager):
     @staticmethod
-    def delete_transaction(db_manager: DatabaseManager, date: str):
-        query = "SELECT id FROM transactions WHERE date = ?"
-        result = db_manager.run_query(query, (date,), fetchone=True)
-        if result:
-            db_manager.run_query("DELETE FROM transactions WHERE date = ?", (date,))
-
-class SavingsManager:
-    @staticmethod
-    def set_savings_goal(db: DatabaseManager, name, target_amount, target_date):
-        db.run_query("INSERT INTO savings (name, target_amount, current_saved, target_date) VALUES (?, ?, ?, ?)", (name, target_amount, 0, target_date))
-
-    @staticmethod
-    def add_savings(db: DatabaseManager, name, amount):
+    def add(db: DatabaseManager, name, amount):
         db.run_query("UPDATE savings SET current_saved = current_saved + ? WHERE name = ?", (amount, name))
         db.run_query("INSERT INTO savings_history (name, amount, action, date) VALUES (?, ?, ?, ?)",
                     (name, amount, "added", datetime.now().strftime("%Y-%m-%d")))
+    
+    @staticmethod
+    def get_all(db: DatabaseManager):
+        return db.run_query("SELECT name, date, amount, action FROM savings_history", fetch=True)
 
+    @staticmethod
+    def delete(db: DatabaseManager, name):
+        db.run_query("DELETE FROM savings WHERE name = ?", (name,))
+        db.run_query("DELETE FROM savings_history WHERE name = ?", (name,))
+    
+    @staticmethod
+    def set_savings_goal(db: DatabaseManager, name, target_amount, target_date):
+        db.run_query("INSERT INTO savings (name, target_amount, current_saved, target_date) VALUES (?, ?, ?, ?)", (name, target_amount, 0, target_date))
 
     @staticmethod
     def track_savings(db: DatabaseManager):
@@ -170,22 +192,17 @@ class SavingsManager:
     def get_savings_history(db: DatabaseManager):
         return db.run_query("SELECT name, date, amount, action FROM savings_history", fetch=True)
 
-    @staticmethod
-    def delete_savings(db: DatabaseManager, name):
-        db.run_query("DELETE FROM savings WHERE name = ?", (name,))
-        db.run_query("DELETE FROM savings_history WHERE name = ?", (name,))
-
-class AnalyticsManager(TransactionManager, SavingsManager):
+class AnalyticsManager(TransactionManager):
     @staticmethod
     def get_totals(db: DatabaseManager, year=None):
-        transactions = TransactionManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all(db, year)
         total_income = sum(txn[2] for txn in transactions if str(txn[6]).lower() == "income")
         total_expense = sum(abs(txn[2]) for txn in transactions if str(txn[6]).lower() == "expense")
         return total_income, total_expense
 
     @staticmethod
     def get_category_totals(db: DatabaseManager, year=None):
-        transactions = TransactionManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all(db, year)
         category_totals = {}
         for txn in transactions:
             category = txn[3]
@@ -201,7 +218,7 @@ class AnalyticsManager(TransactionManager, SavingsManager):
 
     @staticmethod
     def get_monthly_totals(db: DatabaseManager, year=None):
-        transactions = TransactionManager.get_all_transactions(db, year)
+        transactions = TransactionManager.get_all(db, year)
         monthly_totals = defaultdict(lambda: {"income": 0, "expense": 0})
         for txn in transactions:
             date_str = txn[1]
