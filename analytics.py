@@ -217,6 +217,8 @@ KV = '''
 '''
 
 class AnalyticsScreen(MDScreen):
+    # Not encapsulated to be reactive in the UI, cant be reactive otherwise
+    # Thats just how kivy works, theres nothing we can do
     total_income = NumericProperty(0.0)
     total_expenses = NumericProperty(0.0)
 
